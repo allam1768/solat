@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import '../../core/app_colors.dart';
 import 'SettingsController.dart';
 
 class SettingsScreen extends GetView<SettingsController> {
@@ -8,360 +8,192 @@ class SettingsScreen extends GetView<SettingsController> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Pengaturan'),
-        elevation: 0,
-        backgroundColor: AppColors.background,
-      ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+        child: Padding(
+          padding: EdgeInsets.all(24.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ==========================================
-              // SECTION 1: NOTIFIKASI WAKTU SHOLAT
-              // ==========================================
+              SizedBox(height: 20.h),
               Text(
-                'Notifikasi Waktu Sholat',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.textPrimary,
+                'Settings',
+                style: TextStyle(
+                  fontSize: 32.sp,
                   fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Notifikasi muncul tepat saat masuk waktu sholat',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 16),
+              SizedBox(height: 35.h),
 
-              // Notification Card
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
+              // Notification
+              _buildSettingsCard(
+                context,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Toggle Notifikasi
-                    Obx(() => SwitchListTile(
-                      title: const Text(
-                        'Aktifkan Notifikasi',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: const Text(
-                        'Tampilkan notifikasi saat masuk waktu sholat',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      value: controller.notificationEnabled.value,
-                      activeColor: AppColors.primary,
-                      onChanged: controller.toggleNotification,
+                    _titleText('Notification', isDark),
+                    Obx(() => CustomSwitch(
+                      value:
+                      controller.notificationEnabled.value,
+                      onChanged:
+                      controller.toggleNotification,
+                      isDark: isDark,
                     )),
-
-                    const Divider(height: 1),
-
-                    // Test Notifikasi Button
-                    ListTile(
-                      leading: const Icon(
-                        Icons.notifications_active,
-                        color: AppColors.primary,
-                      ),
-                      title: const Text(
-                        'Test Notifikasi',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: const Text(
-                        'Kirim notifikasi test',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: controller.testNotification,
-                    ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 32),
+              SizedBox(height: 13.h),
 
-              // ==========================================
-              // SECTION 2: PENGINGAT OVERLAY (SELALU AKTIF)
-              // ==========================================
-              Text(
-                'Pengingat Layar Penuh',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Overlay selalu aktif, atur durasi tampilan saja',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Overlay Permission Card
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
+              // Overlay Duration
+              _buildSettingsCard(
+                context,
+                child: Row(
+                  mainAxisAlignment:
+                  MainAxisAlignment.spaceBetween,
                   children: [
-                    // Permission Status
-                    Obx(() => ListTile(
-                      leading: Icon(
-                        controller.hasOverlayPermission.value
-                            ? Icons.check_circle
-                            : Icons.cancel,
-                        color: controller.hasOverlayPermission.value
-                            ? Colors.green
-                            : Colors.red,
-                      ),
-                      title: Text(
-                        controller.hasOverlayPermission.value
-                            ? 'Izin Overlay Diberikan'
-                            : 'Izin Overlay Belum Diberikan',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Text(
-                        controller.hasOverlayPermission.value
-                            ? 'Overlay dapat ditampilkan'
-                            : 'Ketuk untuk memberikan izin',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      trailing: controller.hasOverlayPermission.value
-                          ? null
-                          : const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: controller.hasOverlayPermission.value
-                          ? null
-                          : controller.requestOverlayPermission,
-                    )),
-
-                    const Divider(height: 1),
-
-                    // Test Overlay Button
-                    ListTile(
-                      leading: const Icon(
-                        Icons.fullscreen,
-                        color: AppColors.primary,
-                      ),
-                      title: const Text(
-                        'Test Overlay',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: const Text(
-                        'Tampilkan overlay test',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: controller.testOverlay,
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Duration Settings
-              Text(
-                'Durasi Tampilan Overlay',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
+                    _titleText('Overlay Duration', isDark),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Overlay akan menutup setelah',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                        _circleButton(
+                          context,
+                          icon: Icons.remove,
+                          onTap:
+                          controller.decrementDuration,
                         ),
-                        Obx(() => Text(
-                          '${controller.overlayDuration.value} menit',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
+                        SizedBox(width: 2.w),
+                        Obx(() => Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10.w,
+                            vertical: 4.h,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: isDark ? Colors.white : Colors.black,
+
+                              width: 1.5.w,
+
+                            ),
+                            borderRadius:
+                            BorderRadius.circular(
+                                5.r),
+                          ),
+                          child: Text(
+                            '${controller.overlayDuration.value} mnt',
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              fontWeight:
+                              FontWeight.w600,
+                              color: isDark
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
                           ),
                         )),
+                        SizedBox(width: 2.w),
+                        _circleButton(
+                          context,
+                          icon: Icons.add,
+                          onTap:
+                          controller.incrementDuration,
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: controller.durationOptions
-                          .map((minutes) => Obx(() => ChoiceChip(
-                        label: Text('$minutes min'),
-                        selected: controller.overlayDuration.value == minutes,
-                        selectedColor: AppColors.primary,
-                        labelStyle: TextStyle(
-                          color: controller.overlayDuration.value == minutes
-                              ? Colors.white
-                              : AppColors.textPrimary,
-                          fontWeight: controller.overlayDuration.value == minutes
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 13.h),
+
+              // Theme
+              _buildSettingsCard(
+                context,
+                child: Row(
+                  mainAxisAlignment:
+                  MainAxisAlignment.spaceBetween,
+                  children: [
+                    _titleText('Theme', isDark),
+                    Obx(() => CustomSwitch(
+                      value:
+                      controller.isDarkTheme.value,
+                      onChanged:
+                      controller.toggleTheme,
+                      isDark: isDark,
+                    )),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 13.h),
+
+              // Language
+              _buildSettingsCard(
+                context,
+                child: Row(
+                  mainAxisAlignment:
+                  MainAxisAlignment.spaceBetween,
+                  children: [
+                    _titleText('Language', isDark),
+                    Obx(() => Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10.w,
+
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isDark ? Colors.white : Colors.black,
+
+                          width: 1.5.w,
+
                         ),
-                        onSelected: (selected) {
-                          if (selected) {
-                            controller.setOverlayDuration(minutes);
+                        borderRadius:
+                        BorderRadius.circular(
+                            5.r),
+                      ),
+                      child: DropdownButton<String>(
+                        value: controller
+                            .selectedLanguage.value,
+                        underline:
+                        const SizedBox(),
+                        icon: Icon(
+                          Icons.keyboard_arrow_down,
+                          color: isDark
+                              ? Colors.white
+                              : Colors.black,
+                          size: 20.sp,
+                        ),
+                        dropdownColor: isDark
+                            ? Colors.black
+                            : Colors.white,
+                        items: controller.languages
+                            .map(
+                              (lang) =>
+                              DropdownMenuItem(
+                                value: lang,
+                                child: Text(
+                                  lang,
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: isDark
+                                        ? Colors.white
+                                        : Colors.black,
+                                  ),
+                                ),
+                              ),
+                        )
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null) {
+                            controller
+                                .changeLanguage(v);
                           }
                         },
-                      )))
-                          .toList(),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Info Card - Jadwal Overlay
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.primary.withOpacity(0.3),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Kapan Overlay Muncul?',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _buildInfoItem('• Subuh: 30 menit sebelum terbit'),
-                    _buildInfoItem('• Dzuhur: 30 menit sebelum Ashar'),
-                    _buildInfoItem('• Ashar: 30 menit sebelum Maghrib'),
-                    _buildInfoItem('• Maghrib: 30 menit sebelum Isya'),
-                    _buildInfoItem('• Isya: 30 menit setelah masuk waktu'),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Overlay selalu aktif dan tidak dapat dimatikan',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        fontStyle: FontStyle.italic,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Info Card - Perbedaan Notifikasi dan Overlay
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.orange.withOpacity(0.3),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.lightbulb_outline,
-                          color: Colors.orange,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Perbedaan',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: Colors.orange,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _buildInfoItem2(
-                      'Notifikasi: Muncul saat MASUK waktu sholat (bisa dimatikan)',
-                      Colors.orange.shade700,
-                    ),
-                    _buildInfoItem2(
-                      'Overlay: Muncul 30 menit SEBELUM habis waktu (selalu aktif)',
-                      Colors.orange.shade700,
-                    ),
+                    )),
                   ],
                 ),
               ),
@@ -372,29 +204,115 @@ class SettingsScreen extends GetView<SettingsController> {
     );
   }
 
-  Widget _buildInfoItem(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 13,
-          height: 1.5,
-        ),
+  // ================= helpers =================
+
+  Widget _titleText(String text, bool isDark) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 16.sp,
+        fontWeight: FontWeight.w600,
+        color: isDark ? Colors.white : Colors.black,
       ),
     );
   }
 
-  Widget _buildInfoItem2(String text, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 13,
-          height: 1.5,
+  Widget _buildSettingsCard(BuildContext context,
+      {required Widget child}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding:
+      EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.black : Colors.white,
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(
+          color: isDark ? Colors.white : Colors.black,
+          width: 1.5.w,
+        ),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _circleButton(
+      BuildContext context, {
+        required IconData icon,
+        required VoidCallback onTap,
+      }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6.r),
+      child: Container(
+        width: 22.w,
+        height: 22.w,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5.r),
+          border: Border.all(
+            color: isDark ? Colors.white : Colors.black,
+            width: 1.5.w,
+          ),
+        ),
+        child: Icon(
+          icon,
+          size: 12.sp,
+          color: isDark ? Colors.white : Colors.black,
+        ),
+      ),
+    );
+  }
+}
+
+// ================= Custom Switch =================
+
+class CustomSwitch extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final bool isDark;
+
+  const CustomSwitch({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.isDark = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 40.w,
+        height: 25.h,
+        decoration: BoxDecoration(
+          color: isDark ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(5.r),
+          border: Border.all(
+            color: isDark ? Colors.white : Colors.black,
+            width: 1.5.w,
+          ),
+        ),
+        child: AnimatedAlign(
+          duration: const Duration(milliseconds: 200),
+          alignment:
+          value ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: 15.w,
+            height: 15.h,
+            margin: EdgeInsets.symmetric(horizontal: 2.w),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white : Colors.black,
+              borderRadius: BorderRadius.circular(5.r),
+              border: Border.all(
+                color: isDark ? Colors.white : Colors.black,
+                width: 1.5.w,
+              ),
+            ),
+          ),
         ),
       ),
     );

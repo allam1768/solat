@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
-import '../../../core/app_colors.dart';
 import '../MainController.dart';
 
 class CustomBottomNav extends StatelessWidget {
@@ -14,6 +13,9 @@ class CustomBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return SafeArea(
       bottom: true,
       child: Container(
@@ -24,10 +26,10 @@ class CustomBottomNav extends StatelessWidget {
         ),
         padding: EdgeInsets.all(8.w),
         decoration: BoxDecoration(
-          color: AppColors.secondary,
+          color: colorScheme.surface, // ✅ ikut theme
           borderRadius: BorderRadius.circular(10.r),
           border: Border.all(
-            color: AppColors.primary,
+            color: colorScheme.onSurface, // ✅ border ikut theme
             width: 1.5.w,
           ),
         ),
@@ -62,6 +64,7 @@ class CustomBottomNav extends StatelessWidget {
   }
 }
 
+
 class _NavItem extends StatelessWidget {
   const _NavItem({
     required this.index,
@@ -74,6 +77,7 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final MainController controller = Get.find();
+    final colorScheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
       onTap: () {
@@ -89,13 +93,13 @@ class _NavItem extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               color: isActive
-                  ? AppColors.primary
+                  ? colorScheme.onSurface // ✅ active bg
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(5.r),
               border: isActive
                   ? null
                   : Border.all(
-                color: AppColors.primary,
+                color: colorScheme.onSurface, // ✅ border ikut theme
                 width: 1.5.w,
               ),
             ),
@@ -104,8 +108,8 @@ class _NavItem extends StatelessWidget {
                 icon,
                 size: 24.sp,
                 color: isActive
-                    ? AppColors.secondary
-                    : AppColors.primary,
+                    ? colorScheme.surface // ✅ kebalik biar kontras
+                    : colorScheme.onSurface,
               ),
             ),
           ),
