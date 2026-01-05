@@ -54,10 +54,7 @@ class OverlaySchedulerService {
     required String ishaTime,
   }) async {
     try {
-      if (!_overlayService.isOverlayEnabled()) {
-        debugPrint('🚫 Overlay disabled, skipping scheduling');
-        return;
-      }
+      // REMOVED: Check overlay enabled - overlay selalu aktif
 
       // Cancel previous overlay schedules
       await cancelAllOverlayTriggers();
@@ -119,7 +116,7 @@ class OverlaySchedulerService {
         nextPrayerTime: fajrTime,
       );
 
-      debugPrint('✅ All overlay triggers scheduled');
+      debugPrint('✅ All overlay triggers scheduled (ALWAYS ACTIVE)');
       await checkScheduledOverlays();
     } catch (e) {
       debugPrint('❌ Error scheduling overlay triggers: $e');
@@ -248,7 +245,7 @@ class OverlaySchedulerService {
         final schedule = notification.schedule;
 
         if (content != null) {
-          debugPrint('  ✔ ID: ${content.id}, Prayer: ${content.payload?['prayerName']}');
+          debugPrint('  ✓ ID: ${content.id}, Prayer: ${content.payload?['prayerName']}');
         }
 
         if (schedule is NotificationCalendar) {
