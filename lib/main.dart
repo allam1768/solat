@@ -129,6 +129,22 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Get.put(HomeController());
+
+    // Read saved theme preference
+    final storage = GetStorage();
+    final isDarkTheme = storage.read('isDarkTheme') ?? false;
+    final savedLanguage = storage.read('language') ?? 'ENG';
+
+    // Set initial locale based on saved language
+    Locale initialLocale;
+    switch (savedLanguage) {
+      case 'IND':
+        initialLocale = const Locale('id', 'ID');
+        break;
+      default:
+        initialLocale = const Locale('en', 'US');
+    }
+
     return ScreenUtilInit(
       designSize: const Size(412, 917),
       minTextAdapt: true,
@@ -139,7 +155,10 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          themeMode: ThemeMode.light,
+          themeMode: isDarkTheme ? ThemeMode.dark : ThemeMode.light,
+          locale: initialLocale,
+          fallbackLocale: const Locale('en', 'US'),
+          translations: AppTranslations(), // Tambahkan ini jika perlu translations
           initialRoute: AppPages.INITIAL,
           getPages: AppPages.routes,
           defaultTransition: Transition.fadeIn,
@@ -149,9 +168,31 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+// Translations class (optional, bisa dikembangkan lebih lanjut)
+class AppTranslations extends Translations {
+  @override
+  Map<String, Map<String, String>> get keys => {
+    'en_US': {
+      'settings': 'Settings',
+      'notification': 'Notification',
+      'overlay_duration': 'Overlay Duration',
+      'theme': 'Theme',
+      'language': 'Language',
+    },
+    'id_ID': {
+      'settings': 'Pengaturan',
+      'notification': 'Notifikasi',
+      'overlay_duration': 'Durasi Overlay',
+      'theme': 'Tema',
+      'language': 'Bahasa',
+    },
+  };
+}
+
 // Di lib/main.dart
 @pragma("vm:entry-point")
 void overlayMain() {
-  WidgetsFlutterBinding.ensureInitialized(); // Tambahkan ini
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const OverlayApp());
 }

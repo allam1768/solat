@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import '../../../core/app_colors.dart';
 import '../HomeController.dart';
 import 'prayer_item.dart';
 import 'sunrise_item.dart';
@@ -11,28 +10,32 @@ class PrayerScheduleCard extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: AppColors.primary,
+          color: colorScheme.onSurface,
           width: 1.5.w,
         ),
+        color: colorScheme.surface,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             'Jadwal solat',
-            style: TextStyle(
-              fontSize: 24.sp,
+            style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w600,
+              fontSize: 24.sp,
+              color: colorScheme.onSurface,
             ),
           ),
           SizedBox(height: 30.h),
 
-          // Fajr
           Obx(() => PrayerItem(
             iconPath: 'subuh.svg',
             name: 'Fajr',
@@ -40,11 +43,9 @@ class PrayerScheduleCard extends GetView<HomeController> {
           )),
           SizedBox(height: 12.h),
 
-          // Sunrise
           const SunriseItem(),
           SizedBox(height: 12.h),
 
-          // Dhuhr
           Obx(() => PrayerItem(
             iconPath: 'zuhur.svg',
             name: 'Dhuhr',
@@ -52,7 +53,6 @@ class PrayerScheduleCard extends GetView<HomeController> {
           )),
           SizedBox(height: 24.h),
 
-          // Asr
           Obx(() => PrayerItem(
             iconPath: 'ashar.svg',
             name: 'Asr',
@@ -60,7 +60,6 @@ class PrayerScheduleCard extends GetView<HomeController> {
           )),
           SizedBox(height: 24.h),
 
-          // Maghrib
           Obx(() => PrayerItem(
             iconPath: 'magrib.svg',
             name: 'Maghrib',
@@ -68,7 +67,6 @@ class PrayerScheduleCard extends GetView<HomeController> {
           )),
           SizedBox(height: 24.h),
 
-          // Isha
           Obx(() => PrayerItem(
             iconPath: 'isya.svg',
             name: 'Isha',

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import '../../../core/app_colors.dart';
 import '../HomeController.dart';
 
 class PrayerItem extends GetView<HomeController> {
@@ -19,8 +18,11 @@ class PrayerItem extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Obx(() {
-      bool isActive = controller.currentPrayerName.value == name;
+      final isActive = controller.currentPrayerName.value == name;
 
       return AnimatedContainer(
         duration: const Duration(milliseconds: 300),
@@ -29,11 +31,11 @@ class PrayerItem extends GetView<HomeController> {
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
         decoration: BoxDecoration(
           color: isActive
-              ? AppColors.primary.withOpacity(0.15)
+              ? colorScheme.onSurface.withOpacity(0.15)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: isActive ? AppColors.primary : Colors.transparent,
+            color: isActive ? colorScheme.onSurface : Colors.transparent,
             width: 2.w,
           ),
         ),
@@ -45,23 +47,30 @@ class PrayerItem extends GetView<HomeController> {
               height: 32.h,
               child: SvgPicture.asset(
                 'assets/icons/$iconPath',
-                color: AppColors.primary,
+                colorFilter: ColorFilter.mode(
+                  colorScheme.onSurface,
+                  BlendMode.srcIn,
+                ),
               ),
             ),
             Text(
               name,
-              style: TextStyle(
+              style: theme.textTheme.bodyLarge?.copyWith(
                 fontSize: isActive ? 18.sp : 16.sp,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                color: isActive ? AppColors.primary : Colors.black87,
+                color: isActive
+                    ? colorScheme.onSurface
+                    : colorScheme.onSurface,
               ),
             ),
             Text(
               time,
-              style: TextStyle(
+              style: theme.textTheme.bodyLarge?.copyWith(
                 fontSize: isActive ? 18.sp : 16.sp,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                color: isActive ? AppColors.primary : Colors.black87,
+                color: isActive
+                    ? colorScheme.onSurface
+                    : colorScheme.onSurface,
               ),
             ),
           ],

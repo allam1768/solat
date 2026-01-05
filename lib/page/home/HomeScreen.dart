@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:solat/page/home/widgets/location_card.dart';
 import 'package:solat/page/home/widgets/prayer_schedule_card.dart';
 import 'package:solat/page/home/widgets/time_card.dart';
-import '../../core/app_colors.dart';
 import 'HomeController.dart';
 
 class HomeScreen extends GetView<HomeController> {
@@ -12,14 +11,16 @@ class HomeScreen extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
             await controller.refreshLocation();
           },
-          color: AppColors.primary,
+          color: Theme.of(context).colorScheme.primary,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: Padding(
