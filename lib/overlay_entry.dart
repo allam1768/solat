@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'dart:async';
 
 @pragma("vm:entry-point")
 void overlayMain() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Set fullscreen mode
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+
   runApp(const OverlayApp());
 }
 
@@ -81,148 +87,158 @@ class _OverlayAppState extends State<OverlayApp> {
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         backgroundColor: Colors.black.withOpacity(0.95),
-        body: SafeArea(
-          child: Container(
-            width: double.infinity,
-            height: double.infinity,
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Close button
-                Align(
-                  alignment: Alignment.topRight,
-                  child: IconButton(
-                    onPressed: _closeOverlay,
-                    icon: const Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                  ),
-                ),
+        // ❌ HAPUS SafeArea agar benar-benar fullscreen
+        body: SizedBox(
+          width: double.infinity,
+          height: double.infinity,
+          child: Stack(
+            children: [
+              // Main content
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 40), // Space untuk status bar
 
-                const Spacer(),
-
-                // Prayer icon
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF009688).withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.mosque,
-                    size: 60,
-                    color: Color(0xFF009688),
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // Prayer name
-                Text(
-                  prayerName,
-                  style: const TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Message
-                Text(
-                  message,
-                  style: TextStyle(
-                    fontSize: 20,
-                    color: Colors.white.withOpacity(0.9),
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 48),
-
-                // Next prayer info
-                if (nextPrayerTime.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Waktu Sholat Berikutnya',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white.withOpacity(0.7),
+                      // Close button
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: IconButton(
+                          onPressed: _closeOverlay,
+                          icon: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 32,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          nextPrayerTime,
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF009688),
+                      ),
+
+                      const Spacer(),
+
+                      // Prayer icon
+                      Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF009688).withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.mosque,
+                          size: 60,
+                          color: Color(0xFF009688),
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Prayer name
+                      Text(
+                        prayerName,
+                        style: const TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Message
+                      Text(
+                        message,
+                        style: TextStyle(
+                          fontSize: 20,
+                          color: Colors.white.withOpacity(0.9),
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      const SizedBox(height: 48),
+
+                      // Next prayer info
+                      if (nextPrayerTime.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                'Waktu Sholat Berikutnya',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white.withOpacity(0.7),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                nextPrayerTime,
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF009688),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
 
-                const SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
-                // Countdown timer
-                Text(
-                  'Tutup otomatis dalam ${_formatTime(remainingSeconds)}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white.withOpacity(0.5),
+                      // Countdown timer
+                      Text(
+                        'Tutup otomatis dalam ${_formatTime(remainingSeconds)}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white.withOpacity(0.5),
+                        ),
+                      ),
+
+                      const Spacer(),
+
+                      // Close button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _closeOverlay,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF009688),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Tutup',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 40), // Space untuk navigation bar
+                    ],
                   ),
                 ),
-
-                const Spacer(),
-
-                // Close button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _closeOverlay,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF009688),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Tutup',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

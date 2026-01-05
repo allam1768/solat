@@ -1,10 +1,16 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
+
+  final _storage = GetStorage();
+
+  // Storage key untuk notification enable/disable
+  static const String notificationEnabledKey = 'notification_enabled';
 
   static const int fajrNotificationId = 1;
   static const int dhuhrNotificationId = 2;
@@ -15,6 +21,16 @@ class NotificationService {
   static const String prayerChannelKey = 'prayer_times_channel';
   static const String prayerChannelName = 'Waktu Sholat';
   static const String prayerChannelDescription = 'Notifikasi untuk waktu sholat';
+
+  // Check if notification is enabled
+  bool isNotificationEnabled() {
+    return _storage.read(notificationEnabledKey) ?? true;
+  }
+
+  // Set notification enabled/disabled
+  Future<void> setNotificationEnabled(bool enabled) async {
+    await _storage.write(notificationEnabledKey, enabled);
+  }
 
   Future<void> initialize() async {
     try {
@@ -73,6 +89,13 @@ class NotificationService {
     required String ishaTime,
   }) async {
     try {
+      // Cek apakah notifikasi diaktifkan
+      if (!isNotificationEnabled()) {
+        debugPrint('🚫 Notifikasi dimatikan, skip scheduling');
+        await cancelAllNotifications(); // Cancel jika ada yang terjadwal
+        return;
+      }
+
       // Cancel semua notifikasi sebelumnya
       await cancelAllNotifications();
 
@@ -147,7 +170,6 @@ class NotificationService {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
       }
 
-      // 🔥 Create notification dengan exact schedule
       final created = await AwesomeNotifications().createNotification(
         content: NotificationContent(
           id: id,
@@ -187,7 +209,6 @@ class NotificationService {
       if (created) {
         debugPrint('✅ Notifikasi dijadwalkan: $title pada ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} (ID: $id, Repeats: true)');
       } else {
-        // Native Android tetap schedule walau return false
         debugPrint('⚠️ Notifikasi dijadwalkan (native): $title pada ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} (ID: $id)');
       }
     } catch (e) {
@@ -198,8 +219,12 @@ class NotificationService {
 
   Future<void> cancelAllNotifications() async {
     try {
-      await AwesomeNotifications().cancelAll();
-      debugPrint('🗑️ Semua notifikasi dibatalkan');
+      await AwesomeNotifications().cancel(fajrNotificationId);
+      await AwesomeNotifications().cancel(dhuhrNotificationId);
+      await AwesomeNotifications().cancel(asrNotificationId);
+      await AwesomeNotifications().cancel(maghribNotificationId);
+      await AwesomeNotifications().cancel(ishaNotificationId);
+      debugPrint('🗑️ Semua notifikasi waktu sholat dibatalkan');
     } catch (e) {
       debugPrint('❌ Error cancelling notifications: $e');
     }
@@ -231,7 +256,7 @@ class NotificationService {
         final schedule = notification.schedule;
 
         if (content != null) {
-          debugPrint('  ✔ ID: ${content.id}, Title: ${content.title}');
+          debugPrint('  ✓ ID: ${content.id}, Title: ${content.title}');
         }
 
         if (schedule is NotificationCalendar) {

@@ -11,7 +11,6 @@ class OverlayService {
 
   // Storage keys
   static const String overlayDurationKey = 'overlay_duration';
-  static const String overlayEnabledKey = 'overlay_enabled';
 
   // Default duration in minutes
   static const int defaultDuration = 5;
@@ -26,16 +25,6 @@ class OverlayService {
     await _storage.write(overlayDurationKey, minutes);
   }
 
-  // Check if overlay is enabled
-  bool isOverlayEnabled() {
-    return _storage.read(overlayEnabledKey) ?? true;
-  }
-
-  // Toggle overlay enabled/disabled
-  Future<void> setOverlayEnabled(bool enabled) async {
-    await _storage.write(overlayEnabledKey, enabled);
-  }
-
   // Show overlay with prayer info
   Future<void> showPrayerOverlay({
     required String prayerName,
@@ -44,11 +33,6 @@ class OverlayService {
     required String currentTime,
   }) async {
     try {
-      if (!isOverlayEnabled()) {
-        debugPrint('🚫 Overlay disabled in settings');
-        return;
-      }
-
       // Check if overlay permission is granted
       final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
       if (hasPermission != true) {
@@ -80,16 +64,15 @@ class OverlayService {
       // Small delay to ensure data is ready
       await Future.delayed(const Duration(milliseconds: 100));
 
-      // Show overlay
-      // FIX: Menggunakan WindowSize.matchParent karena fullScreen tidak ada di package ini
+      // 🔥 WORKAROUND: Pakai pixel sangat besar untuk memastikan fullscreen
+      // Ambil ukuran layar maksimal (biasanya HP max 3000x3000 pixel)
       await FlutterOverlayWindow.showOverlay(
         enableDrag: false,
-        height: WindowSize.fullCover,
-        width: WindowSize.fullCover,
+        height: 3000,  // 🔥 Paksa tinggi besar
+        width: 2000,   // 🔥 Paksa lebar besar
         alignment: OverlayAlignment.center,
       );
 
-      // FIX: showOverlay mengembalikan Future<void>, jadi tidak perlu mengecek variabel boolean
       debugPrint('✅ Overlay command executed for: $prayerName');
 
     } catch (e) {
