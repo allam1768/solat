@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:vibration/vibration.dart';
 
 class OverlayService {
   static final OverlayService _instance = OverlayService._internal();
@@ -10,100 +12,173 @@ class OverlayService {
   final _storage = GetStorage();
 
   // Storage keys
-  static const String overlayDurationKey = 'overlay_duration';
+  static const String overlayAttemptKey = 'overlay_attempt_';
 
-  // Default duration in minutes
-  static const int defaultDuration = 5;
-
-  // Get overlay duration from settings (in minutes)
-  int getOverlayDuration() {
-    return _storage.read(overlayDurationKey) ?? defaultDuration;
+  // Get current attempt count for specific prayer
+  int getAttemptCount(String prayerName) {
+    return _storage.read('$overlayAttemptKey$prayerName') ?? 0;
   }
 
-  // Set overlay duration (in minutes)
-  Future<void> setOverlayDuration(int minutes) async {
-    await _storage.write(overlayDurationKey, minutes);
+  // Increment attempt count
+  Future<void> incrementAttempt(String prayerName) async {
+    final current = getAttemptCount(prayerName);
+    await _storage.write('$overlayAttemptKey$prayerName', current + 1);
+    debugPrint('✅ Attempt incremented for $prayerName: ${current + 1}');
   }
 
-  // Show overlay with prayer info
+  // Reset attempt count (when prayer done)
+  Future<void> resetAttempt(String prayerName) async {
+    await _storage.write('$overlayAttemptKey$prayerName', 0);
+    debugPrint('✅ Attempt reset for $prayerName');
+  }
+
+  // Show prayer overlay with progressive intensity
   Future<void> showPrayerOverlay({
     required String prayerName,
     required String message,
     required String nextPrayerTime,
     required String currentTime,
+    int? forceAttempt,
   }) async {
     try {
-      // Check if overlay permission is granted
+      debugPrint('🚀 === Starting showPrayerOverlay ===');
+
       final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
+      debugPrint('🔐 Permission status: $hasPermission');
+
       if (hasPermission != true) {
         debugPrint('❌ Overlay permission not granted');
         return;
       }
 
-      // Check if overlay is already active
       final isActive = await FlutterOverlayWindow.isActive();
+      debugPrint('📊 Overlay active status: $isActive');
+
       if (isActive == true) {
         debugPrint('⚠️ Overlay already active, closing first...');
         await FlutterOverlayWindow.closeOverlay();
         await Future.delayed(const Duration(milliseconds: 500));
       }
 
-      debugPrint('📱 Showing overlay for: $prayerName');
+      final attempt = forceAttempt ?? getAttemptCount(prayerName);
+      final intensity = _getIntensityLevel(attempt);
 
-      // Share data to overlay BEFORE showing
-      await FlutterOverlayWindow.shareData({
+      debugPrint('📱 Showing overlay for: $prayerName (Attempt: ${attempt})');
+      debugPrint('🔥 Intensity: ${intensity.name}');
+
+      final dataToShare = {
         'prayerName': prayerName,
         'message': message,
         'nextPrayerTime': nextPrayerTime,
         'currentTime': currentTime,
-        'duration': getOverlayDuration(),
-      });
+        'attempt': attempt,
+        'intensity': intensity.name,
+        'timeoutSeconds': _getTimeoutSeconds(attempt),
+      };
 
-      debugPrint('✅ Data shared to overlay');
+      debugPrint('📦 Data to share: $dataToShare');
 
-      // Small delay to ensure data is ready
-      await Future.delayed(const Duration(milliseconds: 100));
+      try {
+        await FlutterOverlayWindow.shareData(dataToShare);
+        debugPrint('✅ Data shared to overlay successfully');
+      } catch (e) {
+        debugPrint('❌ Error sharing data: $e');
+        return;
+      }
 
-      // 🔥 WORKAROUND: Pakai pixel sangat besar untuk memastikan fullscreen
-      // Ambil ukuran layar maksimal (biasanya HP max 3000x3000 pixel)
-      await FlutterOverlayWindow.showOverlay(
-        enableDrag: false,
-        height: 3000,  // 🔥 Paksa tinggi besar
-        width: 2000,   // 🔥 Paksa lebar besar
-        alignment: OverlayAlignment.center,
-      );
+      await Future.delayed(const Duration(milliseconds: 300));
 
-      debugPrint('✅ Overlay command executed for: $prayerName');
+      try {
+        if (intensity == OverlayIntensity.critical) {
+          debugPrint('🔴 Showing CRITICAL full screen overlay');
+          await FlutterOverlayWindow.showOverlay(
+            enableDrag: false,
+            width: WindowSize.fullCover,
+            height: WindowSize.fullCover,
+            alignment: OverlayAlignment.center,
+            flag: OverlayFlag.defaultFlag,
+          );
+        } else {
+          debugPrint('🟢 Showing POPUP overlay');
+          await FlutterOverlayWindow.showOverlay(
+            enableDrag: false,
+            height: WindowSize.fullCover,
+            width: WindowSize.fullCover,
+            alignment: OverlayAlignment.center,
+            flag: OverlayFlag.defaultFlag,
+          );
+        }
 
-    } catch (e) {
+        debugPrint('✅ Overlay shown with ${intensity.name} intensity');
+
+        final isNowActive = await FlutterOverlayWindow.isActive();
+        debugPrint('✅ Overlay active after show: $isNowActive');
+
+      } catch (e) {
+        debugPrint('❌ Error showing overlay UI: $e');
+        rethrow;
+      }
+
+      debugPrint('🎉 === Overlay process completed ===');
+
+    } catch (e, stackTrace) {
       debugPrint('❌ Error showing overlay: $e');
+      debugPrint('Stack trace: $stackTrace');
     }
   }
 
-  // Close overlay
+  // ✅ Get intensity level based on attempt (3 LEVELS ONLY)
+  OverlayIntensity _getIntensityLevel(int attempt) {
+    if (attempt == 0) return OverlayIntensity.gentle;   // Overlay 1: gentle
+    if (attempt == 1) return OverlayIntensity.high;     // Overlay 2: high
+    return OverlayIntensity.critical;                    // Overlay 3: CRITICAL
+  }
+
+  // ✅ Get timeout duration based on attempt
+  int _getTimeoutSeconds(int attempt) {
+    switch (attempt) {
+      case 0: return 180; // Gentle: 3 minutes
+      case 1: return 180; // High: 3 minutes
+      default: return 0;  // Critical: No timeout (persistent)
+    }
+  }
+
   Future<void> closeOverlay() async {
     try {
       final isActive = await FlutterOverlayWindow.isActive();
       if (isActive == true) {
         await FlutterOverlayWindow.closeOverlay();
-        debugPrint('🗙 Overlay closed');
+        debugPrint('🗑️ Overlay closed');
       }
     } catch (e) {
       debugPrint('❌ Error closing overlay: $e');
     }
   }
 
-  // Request overlay permission
   Future<bool> requestOverlayPermission() async {
-    final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
+    try {
+      final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
+      if (hasPermission == true) {
+        debugPrint('✅ Overlay permission already granted');
+        return true;
+      }
 
-    if (hasPermission == true) return true;
+      debugPrint('📝 Requesting overlay permission...');
+      final granted = await FlutterOverlayWindow.requestPermission();
 
-    final granted = await FlutterOverlayWindow.requestPermission();
-    return granted == true;
+      if (granted == true) {
+        debugPrint('✅ Overlay permission granted');
+      } else {
+        debugPrint('❌ Overlay permission denied');
+      }
+
+      return granted == true;
+    } catch (e) {
+      debugPrint('❌ Error requesting overlay permission: $e');
+      return false;
+    }
   }
 
-  // Check if overlay is currently active
   Future<bool> isOverlayActive() async {
     try {
       final isActive = await FlutterOverlayWindow.isActive();
@@ -114,5 +189,23 @@ class OverlayService {
     }
   }
 
+  Future<bool> hasOverlayPermission() async {
+    try {
+      if (Platform.isAndroid) {
+        final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
+        return hasPermission ?? false;
+      }
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error checking overlay permission: $e');
+      return false;
+    }
+  }
+}
 
+// ✅ Intensity levels (3 LEVELS ONLY)
+enum OverlayIntensity {
+  gentle,   // Overlay 1: Popup, no vibration, 3 min timeout
+  high,     // Overlay 2: Popup, vibration, 3 min timeout
+  critical, // Overlay 3: Full screen, continuous vibration, NO timeout
 }

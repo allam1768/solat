@@ -9,25 +9,30 @@ class OverlaySchedulerService {
 
   final OverlayService _overlayService = OverlayService();
 
-  // Notification IDs untuk overlay triggers
+  // Base notification IDs untuk overlay triggers (100-105)
   static const int subuhOverlayId = 101;
   static const int dhuhrOverlayId = 102;
   static const int asrOverlayId = 103;
   static const int maghribOverlayId = 104;
   static const int ishaOverlayId = 105;
 
-  static const String overlayChannelKey = 'prayer_overlay_channel';
-  static const String overlayChannelName = 'Prayer Overlay Triggers';
+  // Dynamic snooze IDs (200+)
+  static const int snoozeIdBase = 200;
+
+  // ✅ Channel Keys
+  static const String overlayChannelKey = 'prayer_overlay_channel'; // Silent untuk schedule harian
+  static const String alarmChannelKey = 'prayer_overlay_alarm'; // LOUD untuk snooze
 
   Future<void> initializeOverlayChannel() async {
     try {
       await AwesomeNotifications().initialize(
         null,
         [
+          // ✅ Channel 1: Silent trigger untuk schedule harian
           NotificationChannel(
             channelKey: overlayChannelKey,
-            channelName: overlayChannelName,
-            channelDescription: 'Silent triggers for prayer overlays',
+            channelName: 'Prayer Overlay Triggers',
+            channelDescription: 'Silent triggers for daily prayer overlays',
             importance: NotificationImportance.Min,
             channelShowBadge: false,
             playSound: false,
@@ -35,11 +40,33 @@ class OverlaySchedulerService {
             enableLights: false,
             criticalAlerts: false,
           ),
+
+          // ✅ Channel 2: ALARM untuk snooze (FULL SCREEN INTENT)
+          NotificationChannel(
+            channelKey: alarmChannelKey,
+            channelName: 'Prayer Reminder Alarm',
+            channelDescription: 'Urgent prayer reminders with full screen notification',
+            importance: NotificationImportance.Max,
+            channelShowBadge: true,
+            playSound: true,
+            soundSource: 'resource://raw/alarm_sound', // Optional: custom sound
+            enableVibration: true,
+            vibrationPattern: highVibrationPattern,
+            enableLights: true,
+            ledColor: Colors.red,
+            ledOnMs: 1000,
+            ledOffMs: 500,
+            criticalAlerts: true, // ✅ iOS & Android 10+
+            defaultColor: Colors.red,
+            defaultRingtoneType: DefaultRingtoneType.Alarm,
+          ),
         ],
         debug: true,
       );
 
-      debugPrint('✅ Overlay channel initialized');
+      debugPrint('✅ Overlay channels initialized');
+      debugPrint('   📢 Silent Channel: $overlayChannelKey');
+      debugPrint('   🚨 Alarm Channel: $alarmChannelKey');
     } catch (e) {
       debugPrint('❌ Error initializing overlay channel: $e');
     }
@@ -54,14 +81,10 @@ class OverlaySchedulerService {
     required String ishaTime,
   }) async {
     try {
-      // REMOVED: Check overlay enabled - overlay selalu aktif
-
-      // Cancel previous overlay schedules
       await cancelAllOverlayTriggers();
-
       await Future.delayed(const Duration(milliseconds: 300));
 
-      // 1. Subuh: 30 menit sebelum terbit (sunrise - 30 min)
+      // Schedule dengan SILENT channel (repeating daily)
       await _scheduleOverlayTrigger(
         id: subuhOverlayId,
         targetTime: sunriseTime,
@@ -70,9 +93,9 @@ class OverlaySchedulerService {
         message: 'Waktu Subuh akan berakhir dalam 30 menit!\nAyo segera sholat Subuh.',
         nextPrayerName: 'Dzuhur',
         nextPrayerTime: dhuhrTime,
+        channelKey: overlayChannelKey, // Silent
       );
 
-      // 2. Dzuhur: 30 menit sebelum ashar (asr - 30 min)
       await _scheduleOverlayTrigger(
         id: dhuhrOverlayId,
         targetTime: asrTime,
@@ -81,9 +104,9 @@ class OverlaySchedulerService {
         message: 'Waktu Dzuhur akan berakhir dalam 30 menit!\nAyo segera sholat Dzuhur.',
         nextPrayerName: 'Ashar',
         nextPrayerTime: asrTime,
+        channelKey: overlayChannelKey,
       );
 
-      // 3. Ashar: 30 menit sebelum maghrib (maghrib - 30 min)
       await _scheduleOverlayTrigger(
         id: asrOverlayId,
         targetTime: maghribTime,
@@ -92,9 +115,9 @@ class OverlaySchedulerService {
         message: 'Waktu Ashar akan berakhir dalam 30 menit!\nAyo segera sholat Ashar.',
         nextPrayerName: 'Maghrib',
         nextPrayerTime: maghribTime,
+        channelKey: overlayChannelKey,
       );
 
-      // 4. Maghrib: 30 menit sebelum isya (isha - 30 min)
       await _scheduleOverlayTrigger(
         id: maghribOverlayId,
         targetTime: ishaTime,
@@ -103,20 +126,21 @@ class OverlaySchedulerService {
         message: 'Waktu Maghrib akan berakhir dalam 30 menit!\nAyo segera sholat Maghrib.',
         nextPrayerName: 'Isya',
         nextPrayerTime: ishaTime,
+        channelKey: overlayChannelKey,
       );
 
-      // 5. Isya: 30 menit SETELAH isya (isha + 30 min)
       await _scheduleOverlayTrigger(
         id: ishaOverlayId,
         targetTime: ishaTime,
-        offsetMinutes: 30, // Positive offset = after
+        offsetMinutes: 30,
         prayerName: 'Isya',
         message: 'Sudah 30 menit sejak masuk waktu Isya!\nAyo segera sholat Isya.',
         nextPrayerName: 'Subuh',
         nextPrayerTime: fajrTime,
+        channelKey: overlayChannelKey,
       );
 
-      debugPrint('✅ All overlay triggers scheduled (ALWAYS ACTIVE)');
+      debugPrint('✅ All overlay triggers scheduled');
       await checkScheduledOverlays();
     } catch (e) {
       debugPrint('❌ Error scheduling overlay triggers: $e');
@@ -132,6 +156,7 @@ class OverlaySchedulerService {
     required String message,
     required String nextPrayerName,
     required String nextPrayerTime,
+    required String channelKey,
   }) async {
     try {
       final timeParts = targetTime.split(':');
@@ -143,10 +168,8 @@ class OverlaySchedulerService {
       int hour = int.parse(timeParts[0]);
       int minute = int.parse(timeParts[1]);
 
-      // Apply offset
       minute += offsetMinutes;
 
-      // Handle minute overflow/underflow
       while (minute >= 60) {
         minute -= 60;
         hour += 1;
@@ -156,7 +179,6 @@ class OverlaySchedulerService {
         hour -= 1;
       }
 
-      // Handle hour overflow/underflow
       if (hour >= 24) hour -= 24;
       if (hour < 0) hour += 24;
 
@@ -167,12 +189,13 @@ class OverlaySchedulerService {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
       }
 
-      // Create silent notification as trigger
+      await _overlayService.resetAttempt(prayerName);
+
       final created = await AwesomeNotifications().createNotification(
         content: NotificationContent(
           id: id,
-          channelKey: overlayChannelKey,
-          title: 'overlay_trigger', // Marker for overlay
+          channelKey: channelKey,
+          title: 'overlay_trigger',
           body: '$prayerName|$message|$nextPrayerName $nextPrayerTime',
           category: NotificationCategory.Reminder,
           notificationLayout: NotificationLayout.Default,
@@ -201,12 +224,143 @@ class OverlaySchedulerService {
 
       if (created) {
         debugPrint('✅ Overlay trigger scheduled: $prayerName at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} (ID: $id)');
-      } else {
-        debugPrint('⚠️ Overlay trigger scheduled (native): $prayerName at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} (ID: $id)');
       }
     } catch (e) {
       debugPrint('❌ Error scheduling overlay trigger for $prayerName: $e');
       rethrow;
+    }
+  }
+
+  // ✅ Schedule snooze dengan ALARM channel (Full Screen Intent)
+  Future<void> scheduleSnoozeOverlay({
+    required String prayerName,
+    required String message,
+    required String nextPrayerName,
+    required String nextPrayerTime,
+  }) async {
+    try {
+      await _overlayService.incrementAttempt(prayerName);
+
+      final now = DateTime.now();
+      final attempt = _overlayService.getAttemptCount(prayerName);
+
+      // Dynamic snooze duration
+      int snoozeMinutes;
+      if (attempt == 0) {
+        snoozeMinutes = 5;
+      } else if (attempt == 1) {
+        snoozeMinutes = 5;
+      } else {
+        snoozeMinutes = 3;
+      }
+
+      final snoozeTime = now.add(Duration(minutes: snoozeMinutes));
+      final snoozeId = snoozeIdBase + (prayerName.hashCode % 50);
+
+      debugPrint('⏰ === SCHEDULING SNOOZE ALARM ===');
+      debugPrint('   Prayer: $prayerName');
+      debugPrint('   Attempt: ${attempt + 1}');
+      debugPrint('   Snooze: $snoozeMinutes minutes');
+      debugPrint('   Time: ${snoozeTime.hour}:${snoozeTime.minute.toString().padLeft(2, '0')}');
+      debugPrint('   ID: $snoozeId');
+      debugPrint('   Channel: $alarmChannelKey (ALARM MODE)');
+
+      await AwesomeNotifications().cancel(snoozeId);
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // ✅ CREATE ALARM NOTIFICATION with Full Screen Intent
+      final created = await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+          id: snoozeId,
+          channelKey: alarmChannelKey, // ✅ ALARM CHANNEL
+          title: '⏰ Waktu Sholat $prayerName',
+          body: 'Segera sholat $prayerName sebelum waktu habis!',
+          summary: 'Pengingat ke-${attempt + 1}',
+          category: NotificationCategory.Alarm, // ✅ ALARM CATEGORY
+          notificationLayout: NotificationLayout.BigText,
+
+          // ✅ CRITICAL FLAGS untuk Full Screen Intent
+          criticalAlert: true,
+          fullScreenIntent: true,
+          wakeUpScreen: true,
+          locked: true,
+
+          // Visual
+          color: Colors.red,
+          backgroundColor: Colors.red,
+
+          // Persistence
+          autoDismissible: false,
+          displayOnForeground: true,
+          displayOnBackground: true,
+          showWhen: true,
+
+          payload: {
+            'type': 'overlay_trigger',
+            'prayerName': prayerName,
+            'message': message,
+            'nextPrayerName': nextPrayerName,
+            'nextPrayerTime': nextPrayerTime,
+            'isSnooze': 'true',
+            'attempt': attempt.toString(),
+          },
+        ),
+        schedule: NotificationCalendar(
+          year: snoozeTime.year,
+          month: snoozeTime.month,
+          day: snoozeTime.day,
+          hour: snoozeTime.hour,
+          minute: snoozeTime.minute,
+          second: 0,
+          millisecond: 0,
+          repeats: false,
+          allowWhileIdle: true,
+          preciseAlarm: true,
+        ),
+        actionButtons: [
+          NotificationActionButton(
+            key: 'DONE',
+            label: 'Sudah Sholat',
+            actionType: ActionType.Default,
+            autoDismissible: true,
+          ),
+          NotificationActionButton(
+            key: 'SNOOZE',
+            label: 'Ingatkan Lagi (${snoozeMinutes}m)',
+            actionType: ActionType.Default,
+            autoDismissible: true,
+          ),
+        ],
+      );
+
+      if (created) {
+        debugPrint('✅ Snooze ALARM scheduled successfully!');
+        debugPrint('   Will trigger at: ${snoozeTime.hour}:${snoozeTime.minute.toString().padLeft(2, '0')}');
+        debugPrint('   Full Screen Intent: ENABLED');
+      } else {
+        debugPrint('⚠️ Snooze alarm created (native handling)');
+      }
+
+      debugPrint('✅ === SNOOZE ALARM COMPLETE ===');
+
+    } catch (e, stack) {
+      debugPrint('❌ Error scheduling snooze alarm: $e');
+      debugPrint('Stack: $stack');
+    }
+  }
+
+  Future<void> handlePrayerDone(String prayerName) async {
+    try {
+      debugPrint('✅ Prayer done for $prayerName, resetting attempts');
+
+      await _overlayService.resetAttempt(prayerName);
+
+      final snoozeId = snoozeIdBase + (prayerName.hashCode % 50);
+      await AwesomeNotifications().cancel(snoozeId);
+
+      debugPrint('✅ Attempts reset and snooze cancelled for $prayerName');
+    } catch (e) {
+      debugPrint('❌ Error handling prayer done: $e');
     }
   }
 
@@ -218,7 +372,11 @@ class OverlaySchedulerService {
       await AwesomeNotifications().cancel(maghribOverlayId);
       await AwesomeNotifications().cancel(ishaOverlayId);
 
-      debugPrint('🗙️ All overlay triggers cancelled');
+      for (int i = snoozeIdBase; i < snoozeIdBase + 50; i++) {
+        await AwesomeNotifications().cancel(i);
+      }
+
+      debugPrint('🗑️ All overlay triggers cancelled');
     } catch (e) {
       debugPrint('❌ Error cancelling overlay triggers: $e');
     }
@@ -229,10 +387,11 @@ class OverlaySchedulerService {
       final scheduledNotifications = await AwesomeNotifications().listScheduledNotifications();
 
       final overlayTriggers = scheduledNotifications.where((n) =>
-      n.content?.channelKey == overlayChannelKey
+      n.content?.channelKey == overlayChannelKey ||
+          n.content?.channelKey == alarmChannelKey
       ).toList();
 
-      debugPrint('📋 === OVERLAY TRIGGERS === ');
+      debugPrint('📋 === OVERLAY TRIGGERS ===');
       debugPrint('Total: ${overlayTriggers.length}');
 
       if (overlayTriggers.isEmpty) {
@@ -245,7 +404,10 @@ class OverlaySchedulerService {
         final schedule = notification.schedule;
 
         if (content != null) {
-          debugPrint('  ✓ ID: ${content.id}, Prayer: ${content.payload?['prayerName']}');
+          final isSnooze = content.payload?['isSnooze'] == 'true';
+          final isAlarm = content.channelKey == alarmChannelKey;
+          final marker = isSnooze ? (isAlarm ? '🚨 ALARM' : '⏰ SNOOZE') : '📢 DAILY';
+          debugPrint('  ✓ $marker - ID: ${content.id}, Prayer: ${content.payload?['prayerName']}');
         }
 
         if (schedule is NotificationCalendar) {

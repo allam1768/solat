@@ -41,7 +41,7 @@ class LocationCard extends GetView<HomeController> {
               : controller.cityName.value;
 
           return Row(
-            mainAxisSize: MainAxisSize.min, // 🔑 biar row gak full lebar
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 Icons.location_on_outlined,
@@ -49,13 +49,20 @@ class LocationCard extends GetView<HomeController> {
                 color: colorScheme.onSurface,
               ),
               SizedBox(width: 12.w),
-              Text(
-                displayText,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface,
+              Flexible(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: 250.w, // Batasan maksimal lebar text
+                  ),
+                  child: Text(
+                    displayText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
                 ),
               ),
             ],

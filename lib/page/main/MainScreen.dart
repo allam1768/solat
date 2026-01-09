@@ -6,6 +6,7 @@ import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:solat/page/main/widgets/custom_bottom_nav.dart';
 
 import '../home/HomeScreen.dart';
+import '../qibla/QiblaScreen.dart';
 import '../settings/SettingsScreen.dart';
 import 'MainController.dart';
 
@@ -16,6 +17,7 @@ class MainScreen extends StatelessWidget {
 
   final List<Widget> pages = const [
     HomeScreen(),
+    QiblaScreen(),
     SettingsScreen(),
   ];
 

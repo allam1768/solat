@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import '../HomeController.dart';
 
@@ -27,8 +28,15 @@ class SunriseItem extends GetView<HomeController> {
         children: [
           // spacer kiri (biar sejajar sama PrayerItem)
           SizedBox(
-            width: 28.w,
-            height: 28.h,
+            width: 32.w,
+            height: 32.h,
+            child: SvgPicture.asset(
+              'assets/icons/terbit.svg',
+              colorFilter: ColorFilter.mode(
+                colorScheme.onSurface,
+                BlendMode.srcIn,
+              ),
+            ),
           ),
 
           Text(

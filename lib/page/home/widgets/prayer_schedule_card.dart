@@ -27,7 +27,7 @@ class PrayerScheduleCard extends GetView<HomeController> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            'Jadwal solat',
+            'Prayer Schedule',
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w600,
               fontSize: 24.sp,
