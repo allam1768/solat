@@ -20,7 +20,8 @@ class HomeScreen extends GetView<HomeController> {
           onRefresh: () async {
             await controller.refreshLocation();
           },
-          color: Theme.of(context).colorScheme.primary,
+          color: Theme.of(context).colorScheme.surface, // warna spinner
+          backgroundColor: isDark ? Colors.white : Colors.black, // warna belakang
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: Padding(
@@ -37,7 +38,8 @@ class HomeScreen extends GetView<HomeController> {
               ),
             ),
           ),
-        ),
+        )
+
       ),
     );
   }

@@ -38,6 +38,16 @@ class HomeController extends GetxController {
 
   Timer? _timer;
 
+  // ✅ TAMBAHKAN GETTER UNTUK PRAYER TIMES
+  Rx<Map<String, String>?> get prayerTimes => Rx<Map<String, String>?>({
+    'Fajr': fajrTime.value,
+    'Sunrise': sunriseTime.value,
+    'Dhuhr': dhuhrTime.value,
+    'Asr': asrTime.value,
+    'Maghrib': maghribTime.value,
+    'Isha': ishaTime.value,
+  });
+
   @override
   void onInit() {
     super.onInit();
@@ -119,7 +129,7 @@ class HomeController extends GetxController {
 
       await _fetchPrayerTimes();
     } catch (e) {
-      print('Error getting location: $e');
+      debugPrint('Error getting location: $e');
       locationError.value = 'Gagal mendapatkan lokasi';
       cityName.value = 'Gagal memuat';
       provinceName.value = '';
@@ -183,7 +193,7 @@ class HomeController extends GetxController {
 
   Future<void> _fetchPrayerTimes() async {
     if (latitude == null || longitude == null) {
-      print('Koordinat belum tersedia');
+      debugPrint('Koordinat belum tersedia');
       return;
     }
 
@@ -197,11 +207,11 @@ class HomeController extends GetxController {
           '&longitude=$longitude'
           '&method=3';
 
-      print('Fetching prayer times from: $url');
+      debugPrint('Fetching prayer times from: $url');
 
       final response = await http.get(Uri.parse(url));
 
-      print('Response status: ${response.statusCode}');
+      debugPrint('Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -220,13 +230,10 @@ class HomeController extends GetxController {
           _checkCurrentPrayer();
         });
 
-        // 🔥 SCHEDULE NOTIFICATIONS
         await _scheduleNotifications();
-
-        // 🔥 SCHEDULE OVERLAY TRIGGERS
         await _scheduleOverlays();
       } else {
-        print('Failed to load prayer times: ${response.statusCode}');
+        debugPrint('Failed to load prayer times: ${response.statusCode}');
         fajrTime.value = 'Error';
         sunriseTime.value = 'Error';
         dhuhrTime.value = 'Error';
@@ -236,7 +243,7 @@ class HomeController extends GetxController {
         isLoadingPrayer.value = false;
       }
     } catch (e) {
-      print('Error fetching prayer times: $e');
+      debugPrint('Error fetching prayer times: $e');
       fajrTime.value = 'Error';
       sunriseTime.value = 'Error';
       dhuhrTime.value = 'Error';
@@ -253,19 +260,14 @@ class HomeController extends GetxController {
         asrTime.value == '--:--' ||
         maghribTime.value == '--:--' ||
         ishaTime.value == '--:--') {
-      print('❌ Waktu sholat belum lengkap, skip scheduling notifications');
+      debugPrint('❌ Waktu sholat belum lengkap, skip scheduling notifications');
       return;
     }
 
     try {
       await Future.delayed(const Duration(milliseconds: 500));
 
-      print('📢 Scheduling notifications...');
-      print('Fajr: ${fajrTime.value}');
-      print('Dhuhr: ${dhuhrTime.value}');
-      print('Asr: ${asrTime.value}');
-      print('Maghrib: ${maghribTime.value}');
-      print('Isha: ${ishaTime.value}');
+      debugPrint('📢 Scheduling notifications...');
 
       await _notificationService.schedulePrayerNotifications(
         fajrTime: fajrTime.value,
@@ -277,7 +279,7 @@ class HomeController extends GetxController {
 
       await _notificationService.checkPendingNotifications();
     } catch (e) {
-      print('❌ Error scheduling notifications: $e');
+      debugPrint('❌ Error scheduling notifications: $e');
       Get.snackbar(
         '❌ Gagal',
         'Gagal mengaktifkan notifikasi: $e',
@@ -297,14 +299,14 @@ class HomeController extends GetxController {
         asrTime.value == '--:--' ||
         maghribTime.value == '--:--' ||
         ishaTime.value == '--:--') {
-      print('❌ Waktu sholat belum lengkap, skip scheduling overlays');
+      debugPrint('❌ Waktu sholat belum lengkap, skip scheduling overlays');
       return;
     }
 
     try {
       await Future.delayed(const Duration(milliseconds: 500));
 
-      print('📱 Scheduling overlays...');
+      debugPrint('📱 Scheduling overlays...');
 
       await _overlayScheduler.scheduleOverlayTriggers(
         fajrTime: fajrTime.value,
@@ -315,9 +317,9 @@ class HomeController extends GetxController {
         ishaTime: ishaTime.value,
       );
 
-      print('✅ Overlays scheduled successfully');
+      debugPrint('✅ Overlays scheduled successfully');
     } catch (e) {
-      print('❌ Error scheduling overlays: $e');
+      debugPrint('❌ Error scheduling overlays: $e');
     }
   }
 
@@ -409,7 +411,7 @@ class HomeController extends GetxController {
         currentPrayerName.value = '';
       }
     } catch (e) {
-      print('Error checking current prayer: $e');
+      debugPrint('Error checking current prayer: $e');
       currentPrayerName.value = '';
     }
   }
@@ -427,7 +429,7 @@ class HomeController extends GetxController {
       }
       return null;
     } catch (e) {
-      print('Error parsing time "$time": $e');
+      debugPrint('Error parsing time "$time": $e');
       return null;
     }
   }
@@ -435,19 +437,19 @@ class HomeController extends GetxController {
   String _getDayName(int weekday) {
     switch (weekday) {
       case 1:
-        return 'Senin';
+        return 'Monday';
       case 2:
-        return 'Selasa';
+        return 'Tuesday';
       case 3:
-        return 'Rabu';
+        return 'Wednesday';
       case 4:
-        return 'Kamis';
+        return 'Thursday';
       case 5:
-        return 'Jumat';
+        return 'Friday';
       case 6:
-        return 'Sabtu';
+        return 'Saturday';
       case 7:
-        return 'Minggu';
+        return 'Sunday';
       default:
         return '';
     }
@@ -456,29 +458,29 @@ class HomeController extends GetxController {
   String _getMonthName(int month) {
     switch (month) {
       case 1:
-        return 'Januari';
+        return 'January';
       case 2:
-        return 'Februari';
+        return 'February';
       case 3:
-        return 'Maret';
+        return 'March';
       case 4:
         return 'April';
       case 5:
-        return 'Mei';
+        return 'May';
       case 6:
-        return 'Juni';
+        return 'June';
       case 7:
-        return 'Juli';
+        return 'July';
       case 8:
-        return 'Agustus';
+        return 'August';
       case 9:
         return 'September';
       case 10:
-        return 'Oktober';
+        return 'October';
       case 11:
         return 'November';
       case 12:
-        return 'Desember';
+        return 'December';
       default:
         return '';
     }

@@ -1,52 +1,88 @@
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import '../../service/OverlayService.dart';
 import '../../service/NotificationService.dart';
+import '../../service/PermissionHelper.dart'; // ✅ NEW
 import 'package:solat/page/home/HomeController.dart';
-import 'package:flutter/material.dart';
 
 class SettingsController extends GetxController {
   final OverlayService _overlayService = OverlayService();
   final NotificationService _notificationService = NotificationService();
+  final PermissionHelper _permissionHelper = PermissionHelper(); // ✅ NEW
   final _storage = GetStorage();
 
-  // Observable states
   var notificationEnabled = true.obs;
-  var overlayDuration = 5.obs; // Durasi overlay (dalam menit)
   var hasOverlayPermission = false.obs;
+  var hasFullScreenPermission = false.obs; // ✅ NEW
+  var hasBatteryExemption = false.obs; // ✅ NEW
   var isRequestingPermission = false.obs;
   var isDarkTheme = false.obs;
-  var selectedLanguage = 'ENG'.obs;
+  var testAttempt = 0.obs;
 
-  // Duration options (in minutes)
-  final List<int> durationOptions = [1, 3, 5, 10, 15, 30];
-  final List<String> languages = ['ENG', 'IND'];
+  // ✅ OEM Info
+  var deviceManufacturer = 'Unknown'.obs;
+  var isProblematicDevice = false.obs;
 
   @override
   void onInit() {
     super.onInit();
     _loadSettings();
-    _checkOverlayPermission();
+    _checkAllPermissions();
+    _loadDeviceInfo();
   }
 
   Future<void> _loadSettings() async {
     notificationEnabled.value = _notificationService.isNotificationEnabled();
-    overlayDuration.value = _overlayService.getOverlayDuration();
     isDarkTheme.value = _storage.read('isDarkTheme') ?? false;
-    selectedLanguage.value = _storage.read('language') ?? 'ENG';
   }
 
-  Future<void> _checkOverlayPermission() async {
-    final permission = await _overlayService.requestOverlayPermission();
-    hasOverlayPermission.value = permission;
+  // ✅ Check all permissions
+  Future<void> _checkAllPermissions() async {
+    try {
+      final permission = await _overlayService.hasOverlayPermission();
+      hasOverlayPermission.value = permission;
+
+      // Check battery exemption
+      final batteryStatus = await _permissionHelper.checkAllPermissions();
+      hasBatteryExemption.value = batteryStatus == PermissionStatus.granted;
+
+    } catch (e) {
+      hasOverlayPermission.value = false;
+      hasBatteryExemption.value = false;
+    }
   }
 
-  // Toggle notifikasi waktu sholat (ID 1-5)
+  // ✅ Load device info
+  Future<void> _loadDeviceInfo() async {
+    final oemInfo = await _permissionHelper.getOEMInfo();
+    deviceManufacturer.value = oemInfo.deviceName;
+    isProblematicDevice.value = oemInfo.isProblematic;
+
+    if (oemInfo.isProblematic) {
+      debugPrint('⚠️ Problematic device detected: ${oemInfo.manufacturer}');
+    }
+  }
+
+  void showToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.grey.shade700,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+  }
+
   Future<void> toggleNotification(bool value) async {
     notificationEnabled.value = value;
     await _notificationService.setNotificationEnabled(value);
 
-    // Re-schedule atau cancel notifikasi
     try {
       final homeController = Get.find<HomeController>();
       await homeController.refreshLocation();
@@ -54,85 +90,95 @@ class SettingsController extends GetxController {
       debugPrint('HomeController not found: $e');
     }
 
-    Get.snackbar(
-      'Settings Saved',
-      value ? 'Prayer notifications enabled' : 'Prayer notifications disabled',
-      snackPosition: SnackPosition.TOP,
-      duration: const Duration(seconds: 2),
-      backgroundColor: Colors.black87,
-      colorText: Colors.white,
-    );
+    showToast(value ? 'Prayer notifications enabled' : 'Prayer notifications disabled');
   }
 
-  // Increment duration
-  void incrementDuration() {
-    int currentIndex = durationOptions.indexOf(overlayDuration.value);
-    if (currentIndex < durationOptions.length - 1) {
-      setOverlayDuration(durationOptions[currentIndex + 1]);
-    }
-  }
-
-  // Decrement duration
-  void decrementDuration() {
-    int currentIndex = durationOptions.indexOf(overlayDuration.value);
-    if (currentIndex > 0) {
-      setOverlayDuration(durationOptions[currentIndex - 1]);
-    }
-  }
-
-  // Set durasi overlay
-  Future<void> setOverlayDuration(int minutes) async {
-    overlayDuration.value = minutes;
-    await _overlayService.setOverlayDuration(minutes);
-
-    Get.snackbar(
-      'Settings Saved',
-      'Overlay duration set to $minutes minutes',
-      snackPosition: SnackPosition.TOP,
-      duration: const Duration(seconds: 2),
-      backgroundColor: Colors.black87,
-      colorText: Colors.white,
-    );
-  }
-
-  // Toggle theme
   Future<void> toggleTheme(bool value) async {
     isDarkTheme.value = value;
     await _storage.write('isDarkTheme', value);
-
-    // Update theme mode
     Get.changeThemeMode(value ? ThemeMode.dark : ThemeMode.light);
-
-
+    showToast(value ? 'Dark theme enabled' : 'Light theme enabled');
   }
 
-  // Change language
-  Future<void> changeLanguage(String language) async {
-    selectedLanguage.value = language;
-    await _storage.write('language', language);
+  // ✅ Request all critical permissions
+  Future<void> requestAllPermissions() async {
+    isRequestingPermission.value = true;
 
-    // Update locale based on language
-    Locale locale;
-    switch (language) {
-      case 'IND':
-        locale = const Locale('id', 'ID');
-        break;
-      default:
-        locale = const Locale('en', 'US');
-    }
-    Get.updateLocale(locale);
+    // Show explanation dialog
+    final proceed = await _permissionHelper.showPermissionDialog(
+      title: 'Required Permissions',
+      message: '''
+This app needs the following permissions to work properly:
 
-    Get.snackbar(
-      'Language Changed',
-      'Language set to $language',
-      snackPosition: SnackPosition.TOP,
-      duration: const Duration(seconds: 2),
-      backgroundColor: Colors.black87,
-      colorText: Colors.white,
+1. 📱 Display over other apps
+   - Show prayer time overlay
+
+2. 🔔 Notifications
+   - Alert you at prayer times
+
+3. ⏰ Exact alarms
+   - Trigger reminders precisely
+
+4. 🔋 Battery optimization exemption
+   - Ensure reminders work even when app is closed
+
+Tap Continue to grant these permissions.
+      ''',
+      oemSpecificMessage: isProblematicDevice.value
+          ? 'Additional settings may be required for your device.'
+          : null,
     );
+
+    if (!proceed) {
+      isRequestingPermission.value = false;
+      return;
+    }
+
+    // Request permissions
+    final granted = await _permissionHelper.requestAllPermissions();
+
+    // Refresh status
+    await _checkAllPermissions();
+
+    isRequestingPermission.value = false;
+
+    if (granted) {
+      showToast('✅ All permissions granted!');
+
+      // Show OEM-specific guidance if needed
+      if (isProblematicDevice.value) {
+        await _showOEMGuidance();
+      }
+    } else {
+      showToast('⚠️ Some permissions missing');
+
+      // Show what's missing
+      await Get.dialog(
+        AlertDialog(
+          title: const Text('Setup Incomplete'),
+          content: const Text(
+              'Some permissions were not granted. The app may not work properly when closed.\n\n'
+                  'You can grant them manually in Settings.'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text('Later'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Get.back();
+                _permissionHelper.openAppSettings();
+              },
+              child: const Text('Open Settings'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
-  // Request overlay permission
+  // ✅ Request overlay permission (legacy)
   Future<void> requestOverlayPermission() async {
     isRequestingPermission.value = true;
 
@@ -141,62 +187,202 @@ class SettingsController extends GetxController {
 
     isRequestingPermission.value = false;
 
-    if (!granted) {
-      Get.snackbar(
-        'Permission Denied',
-        'Please enable overlay permission in system settings',
-        snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 3),
-        backgroundColor: Colors.black87,
-        colorText: Colors.white,
-      );
-    }
+    showToast(granted ? 'Overlay permission granted' : 'Overlay permission denied');
   }
 
-  // Test overlay manually
-  Future<void> testOverlay() async {
-    if (!hasOverlayPermission.value) {
-      Get.snackbar(
-        'Permission Required',
-        'Grant overlay permission first',
-        snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 2),
-        backgroundColor: Colors.black87,
-        colorText: Colors.white,
-      );
+  // ✅ Request battery exemption
+  Future<void> requestBatteryExemption() async {
+    final granted = await _permissionHelper.requestBatteryOptimizationExemption();
+    hasBatteryExemption.value = granted;
+
+    showToast(granted
+        ? '✅ Battery optimization disabled'
+        : '❌ Battery exemption denied');
+  }
+
+  // ✅ Show OEM-specific guidance
+  Future<void> _showOEMGuidance() async {
+    final oemInfo = await _permissionHelper.getOEMInfo();
+
+    if (!oemInfo.isProblematic) return;
+
+    await Get.dialog(
+      AlertDialog(
+        title: Text('${oemInfo.manufacturer} Setup'),
+        content: SingleChildScrollView(
+          child: Text(
+            '⚠️ Important: ${oemInfo.manufacturer} devices require additional settings:\n\n'
+                '${oemInfo.oemGuidance}\n\n'
+                'Without these settings, reminders may not work when the app is closed.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('I Understand'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              _permissionHelper.openAppSettings();
+            },
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Show permission status
+  Future<void> showPermissionStatus() async {
+    final status = await _permissionHelper.checkAllPermissions();
+    final oemInfo = await _permissionHelper.getOEMInfo();
+
+    String statusText = 'Permission Status:\n\n';
+    statusText += '📱 Overlay: ${hasOverlayPermission.value ? "✅" : "❌"}\n';
+    statusText += '🔔 Notifications: ${notificationEnabled.value ? "✅" : "❌"}\n';
+    statusText += '🔋 Battery Exemption: ${hasBatteryExemption.value ? "✅" : "❌"}\n';
+    statusText += '\n📱 Device: ${oemInfo.deviceName}\n';
+
+    if (oemInfo.isProblematic) {
+      statusText += '\n⚠️ This device may require additional settings.';
+    }
+
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Permission Status'),
+        content: Text(statusText),
+        actions: [
+          if (status != PermissionStatus.granted)
+            ElevatedButton(
+              onPressed: () {
+                Get.back();
+                requestAllPermissions();
+              },
+              child: const Text('Fix Permissions'),
+            ),
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Test overlay dengan 3 intensity levels
+  Future<void> testOverlayDetailed() async {
+    debugPrint('🧪 === STARTING DETAILED OVERLAY TEST ===');
+
+    final hasPermission = await _overlayService.hasOverlayPermission();
+    debugPrint('🔍 Has permission: $hasPermission');
+
+    if (!hasPermission) {
+      showToast('Grant overlay permission first');
       return;
     }
 
-    Get.snackbar(
-      'Testing Overlay',
-      'Overlay will appear in 2 seconds...',
-      snackPosition: SnackPosition.TOP,
-      duration: const Duration(seconds: 2),
-      backgroundColor: Colors.black87,
-      colorText: Colors.white,
-    );
+    final isActive = await _overlayService.isOverlayActive();
+    debugPrint('📊 Is overlay active: $isActive');
 
+    showToast('Starting test in 2 seconds...');
     await Future.delayed(const Duration(seconds: 2));
 
-    await _overlayService.showPrayerOverlay(
-      prayerName: 'Test Prayer',
-      message: 'This is a test overlay.\nOverlay displayed successfully!',
-      nextPrayerTime: 'Dzuhur 12:00',
-      currentTime: DateTime.now().toString(),
+    try {
+      debugPrint('🚀 Calling showPrayerOverlay...');
+
+      final testLevel = testAttempt.value % 3;
+      final levelNames = ['Gentle', 'High', 'Critical'];
+
+      await _overlayService.showPrayerOverlay(
+        prayerName: 'Test - ${levelNames[testLevel]}',
+        message: 'Testing ${levelNames[testLevel]} intensity level.\nAttempt ${testLevel + 1} of 3.',
+        nextPrayerTime: 'Dzuhur 12:00',
+        currentTime: DateTime.now().toString(),
+        forceAttempt: testLevel,
+      );
+
+      debugPrint('✅ showPrayerOverlay completed');
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      final isNowActive = await _overlayService.isOverlayActive();
+      debugPrint('✅ Is overlay active after show: $isNowActive');
+
+      if (isNowActive) {
+        showToast('${levelNames[testLevel]} overlay shown!');
+      } else {
+        showToast('Overlay failed to show!');
+      }
+
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error in test: $e');
+      debugPrint('Stack trace: $stackTrace');
+      showToast('Test failed: $e');
+    }
+
+    testAttempt.value = (testAttempt.value + 1) % 3;
+    debugPrint('🧪 === TEST COMPLETED ===');
+  }
+
+  // ✅ Test all 3 intensity levels sequentially
+  Future<void> testAllIntensities() async {
+    if (!hasOverlayPermission.value) {
+      showToast('Grant overlay permission first');
+      return;
+    }
+
+    showToast('Testing all 3 intensity levels...');
+
+    final levelNames = ['Gentle', 'High', 'Critical'];
+    final durations = [3, 2, 0];
+
+    for (int i = 0; i < 3; i++) {
+      await Future.delayed(Duration(seconds: i == 0 ? 2 : 3));
+
+      showToast('Testing: ${levelNames[i]} (${i + 1}/3)');
+
+      await _overlayService.showPrayerOverlay(
+        prayerName: 'Test - ${levelNames[i]}',
+        message: 'Testing ${levelNames[i]} intensity.\n${durations[i] > 0 ? "Auto-close: ${durations[i]} min" : "Persistent (no timeout)"}',
+        nextPrayerTime: 'Next Prayer 12:00',
+        currentTime: DateTime.now().toString(),
+        forceAttempt: i,
+      );
+
+      if (i < 2) {
+        await Future.delayed(const Duration(seconds: 8));
+      }
+    }
+
+    showToast('All intensity tests completed!');
+    testAttempt.value = 0;
+  }
+
+  Future<void> resetPrayerAttempt(String prayerName) async {
+    await _overlayService.resetAttempt(prayerName);
+    showToast('Attempts reset for $prayerName');
+  }
+
+  void viewAttempts() {
+    final prayers = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
+    String report = 'Current Attempts:\n';
+
+    for (var prayer in prayers) {
+      final attempts = _overlayService.getAttemptCount(prayer);
+      report += '$prayer: $attempts/3\n';
+    }
+
+    Get.defaultDialog(
+      title: 'Prayer Attempts',
+      middleText: report,
+      textConfirm: 'OK',
+      onConfirm: () => Get.back(),
     );
   }
 
-  // Test notifikasi
   Future<void> testNotification() async {
     if (!notificationEnabled.value) {
-      Get.snackbar(
-        'Notifications Disabled',
-        'Enable notifications first',
-        snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 2),
-        backgroundColor: Colors.black87,
-        colorText: Colors.white,
-      );
+      showToast('Enable notifications first');
       return;
     }
 
@@ -205,13 +391,6 @@ class SettingsController extends GetxController {
       body: 'This is a test notification. Notifications are working!',
     );
 
-    Get.snackbar(
-      'Notification Sent',
-      'Check your notification panel',
-      snackPosition: SnackPosition.TOP,
-      duration: const Duration(seconds: 2),
-      backgroundColor: Colors.black87,
-      colorText: Colors.white,
-    );
+    showToast('Notification sent');
   }
 }

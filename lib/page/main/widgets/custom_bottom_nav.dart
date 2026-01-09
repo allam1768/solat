@@ -20,9 +20,9 @@ class CustomBottomNav extends StatelessWidget {
       bottom: true,
       child: Container(
         margin: EdgeInsets.only(
-          left: 153.w,
-          right: 153.w,
-          bottom: 16.h,
+          left: 135.w,
+          right: 135.w,
+          bottom: 20.h,
         ),
         padding: EdgeInsets.all(8.w),
         decoration: BoxDecoration(
@@ -35,8 +35,10 @@ class CustomBottomNav extends StatelessWidget {
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
+            const itemCount = 3;
+            final totalGap = gap.w * (itemCount - 1);
             final itemWidth =
-                (constraints.maxWidth - gap.w) / 2;
+                (constraints.maxWidth - totalGap) / itemCount;
 
             return Row(
               children: [
@@ -52,6 +54,14 @@ class CustomBottomNav extends StatelessWidget {
                   width: itemWidth,
                   child: _NavItem(
                     index: 1,
+                    icon: Icons.explore_outlined,
+                  ),
+                ),
+                SizedBox(width: gap.w),
+                SizedBox(
+                  width: itemWidth,
+                  child: _NavItem(
+                    index: 2,
                     icon: Icons.settings_outlined,
                   ),
                 ),
@@ -59,6 +69,7 @@ class CustomBottomNav extends StatelessWidget {
             );
           },
         ),
+
       ),
     );
   }
