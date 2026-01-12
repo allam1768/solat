@@ -19,16 +19,17 @@ class OverlaySchedulerService {
   // Dynamic snooze IDs (200+)
   static const int snoozeIdBase = 200;
 
-  // ✅ Channel Keys
+  // Channel Keys
   static const String overlayChannelKey = 'prayer_overlay_channel'; // Silent untuk schedule harian
   static const String alarmChannelKey = 'prayer_overlay_alarm'; // LOUD untuk snooze
 
+  // ✅ Initialize TANPA auto-request permission
   Future<void> initializeOverlayChannel() async {
     try {
       await AwesomeNotifications().initialize(
         null,
         [
-          // ✅ Channel 1: Silent trigger untuk schedule harian
+          // Channel 1: Silent trigger untuk schedule harian
           NotificationChannel(
             channelKey: overlayChannelKey,
             channelName: 'Prayer Overlay Triggers',
@@ -41,7 +42,7 @@ class OverlaySchedulerService {
             criticalAlerts: false,
           ),
 
-          // ✅ Channel 2: ALARM untuk snooze (FULL SCREEN INTENT)
+          // Channel 2: ALARM untuk snooze (FULL SCREEN INTENT)
           NotificationChannel(
             channelKey: alarmChannelKey,
             channelName: 'Prayer Reminder Alarm',
@@ -49,14 +50,15 @@ class OverlaySchedulerService {
             importance: NotificationImportance.Max,
             channelShowBadge: true,
             playSound: true,
-            soundSource: 'resource://raw/alarm_sound', // Optional: custom sound
+            // ❌ HAPUS soundSource kalau file belum ada
+            // soundSource: 'resource://raw/alarm_sound',
             enableVibration: true,
             vibrationPattern: highVibrationPattern,
             enableLights: true,
             ledColor: Colors.red,
             ledOnMs: 1000,
             ledOffMs: 500,
-            criticalAlerts: true, // ✅ iOS & Android 10+
+            criticalAlerts: true,
             defaultColor: Colors.red,
             defaultRingtoneType: DefaultRingtoneType.Alarm,
           ),
@@ -64,9 +66,7 @@ class OverlaySchedulerService {
         debug: true,
       );
 
-      debugPrint('✅ Overlay channels initialized');
-      debugPrint('   📢 Silent Channel: $overlayChannelKey');
-      debugPrint('   🚨 Alarm Channel: $alarmChannelKey');
+      debugPrint('✅ Overlay channels initialized (without permission request)');
     } catch (e) {
       debugPrint('❌ Error initializing overlay channel: $e');
     }
@@ -93,7 +93,7 @@ class OverlaySchedulerService {
         message: 'Waktu Subuh akan berakhir dalam 30 menit!\nAyo segera sholat Subuh.',
         nextPrayerName: 'Dzuhur',
         nextPrayerTime: dhuhrTime,
-        channelKey: overlayChannelKey, // Silent
+        channelKey: overlayChannelKey,
       );
 
       await _scheduleOverlayTrigger(
@@ -140,7 +140,6 @@ class OverlaySchedulerService {
         channelKey: overlayChannelKey,
       );
 
-      debugPrint('✅ All overlay triggers scheduled');
       await checkScheduledOverlays();
     } catch (e) {
       debugPrint('❌ Error scheduling overlay triggers: $e');
@@ -222,8 +221,8 @@ class OverlaySchedulerService {
         ),
       );
 
-      if (created) {
-        debugPrint('✅ Overlay trigger scheduled: $prayerName at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} (ID: $id)');
+      if (!created) {
+        debugPrint('⚠️ Failed to schedule overlay trigger for $prayerName');
       }
     } catch (e) {
       debugPrint('❌ Error scheduling overlay trigger for $prayerName: $e');
@@ -231,7 +230,7 @@ class OverlaySchedulerService {
     }
   }
 
-  // ✅ Schedule snooze dengan ALARM channel (Full Screen Intent)
+  // Schedule snooze dengan ALARM channel (Full Screen Intent)
   Future<void> scheduleSnoozeOverlay({
     required String prayerName,
     required String message,
@@ -257,29 +256,21 @@ class OverlaySchedulerService {
       final snoozeTime = now.add(Duration(minutes: snoozeMinutes));
       final snoozeId = snoozeIdBase + (prayerName.hashCode % 50);
 
-      debugPrint('⏰ === SCHEDULING SNOOZE ALARM ===');
-      debugPrint('   Prayer: $prayerName');
-      debugPrint('   Attempt: ${attempt + 1}');
-      debugPrint('   Snooze: $snoozeMinutes minutes');
-      debugPrint('   Time: ${snoozeTime.hour}:${snoozeTime.minute.toString().padLeft(2, '0')}');
-      debugPrint('   ID: $snoozeId');
-      debugPrint('   Channel: $alarmChannelKey (ALARM MODE)');
-
       await AwesomeNotifications().cancel(snoozeId);
       await Future.delayed(const Duration(milliseconds: 100));
 
-      // ✅ CREATE ALARM NOTIFICATION with Full Screen Intent
+      // CREATE ALARM NOTIFICATION with Full Screen Intent
       final created = await AwesomeNotifications().createNotification(
         content: NotificationContent(
           id: snoozeId,
-          channelKey: alarmChannelKey, // ✅ ALARM CHANNEL
+          channelKey: alarmChannelKey,
           title: '⏰ Waktu Sholat $prayerName',
           body: 'Segera sholat $prayerName sebelum waktu habis!',
           summary: 'Pengingat ke-${attempt + 1}',
-          category: NotificationCategory.Alarm, // ✅ ALARM CATEGORY
+          category: NotificationCategory.Alarm,
           notificationLayout: NotificationLayout.BigText,
 
-          // ✅ CRITICAL FLAGS untuk Full Screen Intent
+          // CRITICAL FLAGS untuk Full Screen Intent
           criticalAlert: true,
           fullScreenIntent: true,
           wakeUpScreen: true,
@@ -333,15 +324,9 @@ class OverlaySchedulerService {
         ],
       );
 
-      if (created) {
-        debugPrint('✅ Snooze ALARM scheduled successfully!');
-        debugPrint('   Will trigger at: ${snoozeTime.hour}:${snoozeTime.minute.toString().padLeft(2, '0')}');
-        debugPrint('   Full Screen Intent: ENABLED');
-      } else {
-        debugPrint('⚠️ Snooze alarm created (native handling)');
+      if (!created) {
+        debugPrint('⚠️ Failed to schedule snooze alarm for $prayerName');
       }
-
-      debugPrint('✅ === SNOOZE ALARM COMPLETE ===');
 
     } catch (e, stack) {
       debugPrint('❌ Error scheduling snooze alarm: $e');
@@ -351,14 +336,10 @@ class OverlaySchedulerService {
 
   Future<void> handlePrayerDone(String prayerName) async {
     try {
-      debugPrint('✅ Prayer done for $prayerName, resetting attempts');
-
       await _overlayService.resetAttempt(prayerName);
 
       final snoozeId = snoozeIdBase + (prayerName.hashCode % 50);
       await AwesomeNotifications().cancel(snoozeId);
-
-      debugPrint('✅ Attempts reset and snooze cancelled for $prayerName');
     } catch (e) {
       debugPrint('❌ Error handling prayer done: $e');
     }
@@ -375,8 +356,6 @@ class OverlaySchedulerService {
       for (int i = snoozeIdBase; i < snoozeIdBase + 50; i++) {
         await AwesomeNotifications().cancel(i);
       }
-
-      debugPrint('🗑️ All overlay triggers cancelled');
     } catch (e) {
       debugPrint('❌ Error cancelling overlay triggers: $e');
     }
@@ -391,30 +370,12 @@ class OverlaySchedulerService {
           n.content?.channelKey == alarmChannelKey
       ).toList();
 
-      debugPrint('📋 === OVERLAY TRIGGERS ===');
-      debugPrint('Total: ${overlayTriggers.length}');
-
       if (overlayTriggers.isEmpty) {
         debugPrint('⚠️ NO OVERLAY TRIGGERS SCHEDULED!');
         return;
       }
 
-      for (var notification in overlayTriggers) {
-        final content = notification.content;
-        final schedule = notification.schedule;
-
-        if (content != null) {
-          final isSnooze = content.payload?['isSnooze'] == 'true';
-          final isAlarm = content.channelKey == alarmChannelKey;
-          final marker = isSnooze ? (isAlarm ? '🚨 ALARM' : '⏰ SNOOZE') : '📢 DAILY';
-          debugPrint('  ✓ $marker - ID: ${content.id}, Prayer: ${content.payload?['prayerName']}');
-        }
-
-        if (schedule is NotificationCalendar) {
-          debugPrint('    Time: ${schedule.hour?.toString().padLeft(2, '0')}:${schedule.minute?.toString().padLeft(2, '0')}, Repeats: ${schedule.repeats}');
-        }
-      }
-      debugPrint('==========================');
+      debugPrint('📋 Total overlay triggers scheduled: ${overlayTriggers.length}');
     } catch (e) {
       debugPrint('❌ Error checking overlay triggers: $e');
     }

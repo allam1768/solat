@@ -25,7 +25,7 @@ class PermissionHelper {
         'oppo', 'realme', 'oneplus',
         'vivo', 'iqoo',
         'huawei', 'honor',
-        'samsung' // Samsung juga agak strict
+        'samsung'
       ];
 
       final isProblematic = problematicOEMs.any((oem) => manufacturer.contains(oem));
@@ -52,12 +52,6 @@ class PermissionHelper {
       'ignoreBatteryOptimizations': await Permission.ignoreBatteryOptimizations.status,
     };
 
-    debugPrint('📋 Permission Status:');
-    results.forEach((key, value) {
-      debugPrint('   $key: ${value.isGranted ? "✅" : "❌"} $value');
-    });
-
-    // If any critical permission is denied, return denied
     if (!results['notification']!.isGranted ||
         !results['overlay']!.isGranted ||
         !results['scheduleExactAlarm']!.isGranted) {
@@ -69,31 +63,13 @@ class PermissionHelper {
 
   // Request all necessary permissions
   Future<bool> requestAllPermissions() async {
-    debugPrint('🔐 === REQUESTING ALL PERMISSIONS ===');
-
-    // 1. Notification Permission
     var notificationStatus = await Permission.notification.request();
-    debugPrint('   Notification: ${notificationStatus.isGranted ? "✅" : "❌"}');
-
-    // 2. Overlay Permission
     var overlayStatus = await Permission.systemAlertWindow.request();
-    debugPrint('   Overlay: ${overlayStatus.isGranted ? "✅" : "❌"}');
-
-    // 3. Schedule Exact Alarm (Android 12+)
     var alarmStatus = await Permission.scheduleExactAlarm.request();
-    debugPrint('   Exact Alarm: ${alarmStatus.isGranted ? "✅" : "❌"}');
-
-    // 4. Battery Optimization (optional but recommended)
-    var batteryStatus = await Permission.ignoreBatteryOptimizations.status;
-    if (!batteryStatus.isGranted) {
-      debugPrint('   Battery Optimization: ⚠️ Not disabled (optional)');
-    }
 
     final allGranted = notificationStatus.isGranted &&
         overlayStatus.isGranted &&
         alarmStatus.isGranted;
-
-    debugPrint(allGranted ? '✅ All critical permissions granted' : '❌ Some permissions missing');
 
     return allGranted;
   }
@@ -104,19 +80,11 @@ class PermissionHelper {
       final status = await Permission.ignoreBatteryOptimizations.status;
 
       if (status.isGranted) {
-        debugPrint('✅ Battery optimization already disabled');
         return true;
       }
 
       final result = await Permission.ignoreBatteryOptimizations.request();
-
-      if (result.isGranted) {
-        debugPrint('✅ Battery optimization disabled');
-        return true;
-      } else {
-        debugPrint('❌ Battery optimization request denied');
-        return false;
-      }
+      return result.isGranted;
     } catch (e) {
       debugPrint('Error requesting battery exemption: $e');
       return false;

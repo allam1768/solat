@@ -24,14 +24,23 @@ class NotificationService {
 
   // Check if notification is enabled
   bool isNotificationEnabled() {
-    return _storage.read(notificationEnabledKey) ?? true;
+    return _storage.read(notificationEnabledKey) ?? false; // ✅ Default false
   }
 
   // Set notification enabled/disabled
   Future<void> setNotificationEnabled(bool enabled) async {
-    await _storage.write(notificationEnabledKey, enabled);
+    if (enabled) {
+      // Request permission ketika enable
+      final granted = await requestPermissions();
+      if (granted) {
+        await _storage.write(notificationEnabledKey, true);
+      }
+    } else {
+      await _storage.write(notificationEnabledKey, false);
+    }
   }
 
+  // ✅ Initialize TANPA auto-request permission
   Future<void> initialize() async {
     try {
       await AwesomeNotifications().initialize(
@@ -52,14 +61,16 @@ class NotificationService {
         debug: true,
       );
 
-      await requestPermissions();
+      // ❌ HAPUS: await requestPermissions();
+      // Permission akan direquest di Onboarding
 
-      debugPrint('✅ NotificationService initialized successfully');
+      debugPrint('✅ NotificationService initialized (without permission request)');
     } catch (e) {
       debugPrint('❌ Error initializing NotificationService: $e');
     }
   }
 
+  // ✅ Method terpisah untuk request permission (dipanggil di Onboarding)
   Future<bool> requestPermissions() async {
     try {
       bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
@@ -73,7 +84,7 @@ class NotificationService {
         return false;
       }
 
-      debugPrint('✅ All permissions granted: $isAllowed');
+      debugPrint('✅ Notification permission GRANTED');
       return isAllowed;
     } catch (e) {
       debugPrint('❌ Error requesting permissions: $e');
@@ -91,8 +102,7 @@ class NotificationService {
     try {
       // Cek apakah notifikasi diaktifkan
       if (!isNotificationEnabled()) {
-        debugPrint('🚫 Notifikasi dimatikan, skip scheduling');
-        await cancelAllNotifications(); // Cancel jika ada yang terjadwal
+        await cancelAllNotifications();
         return;
       }
 
@@ -137,8 +147,6 @@ class NotificationService {
         body: 'Sudah masuk waktu sholat Isya. Ayo segera sholat!',
         time: ishaTime,
       );
-
-      debugPrint('✅ Semua notifikasi waktu sholat berhasil dijadwalkan');
 
       await checkPendingNotifications();
     } catch (e) {
@@ -205,12 +213,6 @@ class NotificationService {
           preciseAlarm: true,
         ),
       );
-
-      if (created) {
-        debugPrint('✅ Notifikasi dijadwalkan: $title pada ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} (ID: $id, Repeats: true)');
-      } else {
-        debugPrint('⚠️ Notifikasi dijadwalkan (native): $title pada ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} (ID: $id)');
-      }
     } catch (e) {
       debugPrint('❌ Error scheduling notification for $title: $e');
       rethrow;
@@ -224,7 +226,6 @@ class NotificationService {
       await AwesomeNotifications().cancel(asrNotificationId);
       await AwesomeNotifications().cancel(maghribNotificationId);
       await AwesomeNotifications().cancel(ishaNotificationId);
-      debugPrint('🗑️ Semua notifikasi waktu sholat dibatalkan');
     } catch (e) {
       debugPrint('❌ Error cancelling notifications: $e');
     }
@@ -233,7 +234,6 @@ class NotificationService {
   Future<void> cancelNotification(int id) async {
     try {
       await AwesomeNotifications().cancel(id);
-      debugPrint('🗑️ Notifikasi #$id dibatalkan');
     } catch (e) {
       debugPrint('❌ Error cancelling notification #$id: $e');
     }
@@ -243,27 +243,12 @@ class NotificationService {
     try {
       final scheduledNotifications = await AwesomeNotifications().listScheduledNotifications();
 
-      debugPrint('📋 === SCHEDULED NOTIFICATIONS === ');
-      debugPrint('Total: ${scheduledNotifications.length}');
-
       if (scheduledNotifications.isEmpty) {
         debugPrint('⚠️ TIDAK ADA NOTIFIKASI TERJADWAL!');
         return;
       }
 
-      for (var notification in scheduledNotifications) {
-        final content = notification.content;
-        final schedule = notification.schedule;
-
-        if (content != null) {
-          debugPrint('  ✓ ID: ${content.id}, Title: ${content.title}');
-        }
-
-        if (schedule is NotificationCalendar) {
-          debugPrint('    Schedule: ${schedule.hour?.toString().padLeft(2, '0')}:${schedule.minute?.toString().padLeft(2, '0')}, Repeats: ${schedule.repeats}');
-        }
-      }
-      debugPrint('================================');
+      debugPrint('📋 Total notifikasi terjadwal: ${scheduledNotifications.length}');
     } catch (e) {
       debugPrint('❌ Error checking pending notifications: $e');
     }
@@ -288,8 +273,6 @@ class NotificationService {
           color: const Color(0xFF009688),
         ),
       );
-
-      debugPrint('✅ Instant notification sent: $title');
     } catch (e) {
       debugPrint('❌ Error sending instant notification: $e');
     }

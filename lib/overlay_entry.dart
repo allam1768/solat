@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:vibration/vibration.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 
 @pragma("vm:entry-point")
 void overlayMain() {
@@ -49,11 +50,13 @@ class _OverlayScreenState extends State<OverlayScreen>
   late AnimationController _pulseController;
   late AnimationController _shakeController;
 
-  final _storage = GetStorage();
+  late GetStorage _storage;
 
   @override
   void initState() {
     super.initState();
+
+    _initStorage();
 
     _pulseController = AnimationController(
       vsync: this,
@@ -71,6 +74,16 @@ class _OverlayScreenState extends State<OverlayScreen>
       });
       _handleNewData(event);
     });
+  }
+
+  Future<void> _initStorage() async {
+    try {
+      await GetStorage.init();
+      _storage = GetStorage();
+    } catch (e) {
+      debugPrint('Storage init error: $e');
+      _storage = GetStorage();
+    }
   }
 
   void _handleNewData(Map<String, dynamic> event) {
@@ -109,7 +122,7 @@ class _OverlayScreenState extends State<OverlayScreen>
           break;
       }
     } catch (e) {
-      debugPrint('❌ Error vibrating: $e');
+      debugPrint('Vibration error: $e');
     }
   }
 
@@ -139,21 +152,14 @@ class _OverlayScreenState extends State<OverlayScreen>
     setState(() => isProcessing = true);
 
     try {
-      debugPrint('⏰ === AUTO-SNOOZE TRIGGERED ===');
-
       await Vibration.cancel();
       autoSnoozeTimer?.cancel();
       countdownTimer?.cancel();
 
-      debugPrint('🔄 Closing overlay (backup snoozes will handle next trigger)');
-
       await Future.delayed(const Duration(milliseconds: 300));
       await _forceCloseOverlay();
-      debugPrint('✅ === AUTO-SNOOZE COMPLETE ===');
-
-    } catch (e, stack) {
-      debugPrint('❌ Error handling auto snooze: $e');
-      debugPrint('Stack: $stack');
+    } catch (e) {
+      debugPrint('Auto snooze error: $e');
       await _forceCloseOverlay();
     } finally {
       if (mounted) {
@@ -163,21 +169,26 @@ class _OverlayScreenState extends State<OverlayScreen>
   }
 
   Future<void> _handleDone() async {
-    if (isProcessing) {
-      debugPrint('⚠️ Already processing, ignoring...');
-      return;
-    }
+    if (isProcessing) return;
     setState(() => isProcessing = true);
 
     try {
-      debugPrint('🟢 Done button pressed');
       final prayerName = data?['prayerName'] ?? 'Unknown';
 
       await Vibration.cancel();
       autoSnoozeTimer?.cancel();
       countdownTimer?.cancel();
 
-      debugPrint('📤 Notifying main app: prayer done');
+      // Send done signal via notification
+      bool signalSent = false;
+      try {
+        await _sendDoneSignal(prayerName);
+        signalSent = true;
+      } catch (e) {
+        debugPrint('Done signal failed: $e');
+      }
+
+      // Try direct communication
       try {
         await FlutterOverlayWindow.shareData({
           'action': 'prayer_done',
@@ -187,19 +198,19 @@ class _OverlayScreenState extends State<OverlayScreen>
           const Duration(milliseconds: 500),
           onTimeout: () => null,
         );
-        debugPrint('✅ Main app notified');
       } catch (e) {
-        debugPrint('⚠️ Could not notify main app: $e');
+        debugPrint('Direct communication failed: $e');
       }
 
-      // ✅ Tunggu lebih lama agar main app sempat proses
-      debugPrint('⏳ Waiting for main app to process...');
+      // Fallback - handle locally
+      if (!signalSent) {
+        await _handleDoneLocally(prayerName);
+      }
+
       await Future.delayed(const Duration(milliseconds: 800));
       await _forceCloseOverlay();
-
-    } catch (e, stack) {
-      debugPrint('❌ Error handling done: $e');
-      debugPrint('Stack: $stack');
+    } catch (e) {
+      debugPrint('Handle done error: $e');
       await _forceCloseOverlay();
     } finally {
       if (mounted) {
@@ -208,28 +219,68 @@ class _OverlayScreenState extends State<OverlayScreen>
     }
   }
 
-  Future<void> _handleSnooze() async {
-    if (isProcessing) {
-      debugPrint('⚠️ Already processing, ignoring...');
-      return;
+  Future<void> _sendDoneSignal(String prayerName) async {
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: 998,
+        channelKey: 'prayer_overlay_channel',
+        title: 'prayer_done_signal',
+        body: prayerName,
+        displayOnForeground: false,
+        displayOnBackground: false,
+        showWhen: false,
+        autoDismissible: true,
+        payload: {
+          'type': 'prayer_done',
+          'prayerName': prayerName,
+          'timestamp': DateTime.now().millisecondsSinceEpoch.toString(),
+        },
+      ),
+    );
+  }
+
+  Future<void> _handleDoneLocally(String prayerName) async {
+    try {
+      await _storage.write('overlay_attempt_$prayerName', 0);
+      await _cancelBackupSnoozesLocally(prayerName);
+    } catch (e) {
+      debugPrint('Local done handler error: $e');
     }
+  }
+
+  Future<void> _cancelBackupSnoozesLocally(String prayerName) async {
+    try {
+      final snoozeIds = _storage.read('backup_snooze_ids_$prayerName') as List<dynamic>?;
+
+      if (snoozeIds == null || snoozeIds.isEmpty) return;
+
+      for (final id in snoozeIds) {
+        try {
+          await AwesomeNotifications().cancel(id as int);
+        } catch (e) {
+          debugPrint('Cancel snooze $id failed: $e');
+        }
+      }
+
+      await _storage.remove('backup_snooze_ids_$prayerName');
+    } catch (e) {
+      debugPrint('Cancel backup snoozes error: $e');
+    }
+  }
+
+  Future<void> _handleSnooze() async {
+    if (isProcessing) return;
     setState(() => isProcessing = true);
 
     try {
-      debugPrint('⏰ Snooze button pressed');
-
       await Vibration.cancel();
       autoSnoozeTimer?.cancel();
       countdownTimer?.cancel();
 
-      debugPrint('🔄 Closing overlay (backup snoozes will handle next trigger)');
-
       await Future.delayed(const Duration(milliseconds: 300));
       await _forceCloseOverlay();
-
-    } catch (e, stack) {
-      debugPrint('❌ Error handling snooze: $e');
-      debugPrint('Stack: $stack');
+    } catch (e) {
+      debugPrint('Handle snooze error: $e');
       await _forceCloseOverlay();
     } finally {
       if (mounted) {
@@ -239,29 +290,25 @@ class _OverlayScreenState extends State<OverlayScreen>
   }
 
   Future<void> _forceCloseOverlay() async {
-    debugPrint('🔄 Force closing overlay...');
+    autoSnoozeTimer?.cancel();
+    countdownTimer?.cancel();
+
+    try {
+      await Vibration.cancel();
+    } catch (e) {
+      debugPrint('Vibration cancel error: $e');
+    }
 
     for (int i = 0; i < 5; i++) {
       try {
         await Future.delayed(Duration(milliseconds: i * 100));
         final closed = await FlutterOverlayWindow.closeOverlay();
-        debugPrint('🔄 Close attempt ${i + 1}: $closed');
 
-        if (closed == true) {
-          debugPrint('✅ Overlay closed successfully!');
-          return;
-        }
+        if (closed == true) return;
       } catch (e) {
-        debugPrint('⚠️ Close attempt ${i + 1} error: $e');
+        debugPrint('Close attempt ${i + 1} error: $e');
       }
     }
-
-    debugPrint('⚠️ All close attempts completed');
-  }
-
-  String _getSnoozeDurationText() {
-    // ✅ Semua snooze 5 menit (3 overlay system)
-    return '5 mnt';
   }
 
   String _getCountdownText() {
@@ -289,281 +336,280 @@ class _OverlayScreenState extends State<OverlayScreen>
   }
 
   Widget _buildCriticalOverlay() {
-    return Material(
-      color: Colors.transparent,
-      child: AnimatedBuilder(
-        animation: _shakeController,
-        builder: (context, _) {
-          final shake = (_shakeController.value - 0.5) * 20;
-          return Transform.translate(
-            offset: Offset(shake, 0),
-            child: Container(
-              width: double.infinity,
-              height: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.red, Colors.black],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-              child: SafeArea(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 32.w),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ScaleTransition(
-                        scale: Tween(begin: 0.9, end: 1.1)
-                            .animate(_pulseController),
-                        child: Icon(
-                          Icons.warning_rounded,
-                          size: 140.sp,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(height: 40.h),
-                      Text(
-                        "WAKTU SHOLAT",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 36.sp,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                      SizedBox(height: 20.h),
-                      Text(
-                        data?['prayerName'] ?? '',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 52.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 20.h),
-                      Text(
-                        "Harus dikonfirmasi manual",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14.sp,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                      SizedBox(height: 50.h),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: isProcessing ? null : _handleDone,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.red,
-                            padding: EdgeInsets.symmetric(vertical: 20.h),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16.r),
-                            ),
-                            elevation: 8,
-                          ),
-                          child: isProcessing
-                              ? SizedBox(
-                            height: 22.h,
-                            width: 22.h,
-                            child: const CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.red),
-                            ),
-                          )
-                              : Text(
-                            "SUDAH SHOLAT",
-                            style: TextStyle(
-                              fontSize: 22.sp,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildPopupOverlay() {
-    final showCountdown = remainingSeconds > 0;
-    final isClosing = remainingSeconds <= 0 && !isProcessing;
+    final prayerName = data?['prayerName'] ?? 'Prayer';
+    final message = data?['message'] ?? 'Please pray now.';
 
     return Material(
-      color: Colors.black.withOpacity(0.5),
+      color: Colors.black.withOpacity(0.6),
       child: Center(
         child: Container(
           constraints: BoxConstraints(
-            maxWidth: 320.w,
-            minWidth: 280.w,
+            maxWidth: 340.w,
+            minWidth: 300.w,
           ),
           margin: EdgeInsets.symmetric(horizontal: 24.w),
-          padding: EdgeInsets.all(24.w),
+          padding: EdgeInsets.all(20.w),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20.r),
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(
+              color: Colors.black,
+              width: 1.5.w,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.25),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 40,
+                offset: const Offset(0, 15),
               ),
             ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (isClosing)
-                Column(
-                  children: [
-                    SizedBox(
-                      height: 40.h,
-                      width: 40.w,
-                      child: const CircularProgressIndicator(strokeWidth: 3),
-                    ),
-                    SizedBox(height: 16.h),
-                    Text(
-                      'Snoozing...',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                )
-              else ...[
-                Icon(
-                  Icons.nightlight_round,
-                  size: 64.sp,
-                  color: Colors.indigo.shade900,
+              SvgPicture.asset(
+                'assets/icons/logo.svg',
+                width: 80.w,
+                height: 80.w,
+                fit: BoxFit.contain,
+                colorFilter: const ColorFilter.mode(
+                  Colors.black,
+                  BlendMode.srcIn,
                 ),
-                SizedBox(height: 16.h),
-                Text(
-                  data?['prayerName'] ?? 'Prayer',
-                  style: TextStyle(
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+              ),
+              SizedBox(height: 40.h),
+              Text(
+                prayerName,
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
-                SizedBox(height: 10.h),
-                Text(
-                  data?['message'] ?? '',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: Colors.black54,
-                    height: 1.3,
-                  ),
+              ),
+              SizedBox(height: 12.h),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: Colors.black,
+                  fontWeight: FontWeight.w600,
                 ),
-                if (showCountdown) ...[
-                  SizedBox(height: 16.h),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 8.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(8.r),
-                      border: Border.all(
-                        color: Colors.orange.shade300,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.timer_outlined,
-                          size: 16.sp,
-                          color: Colors.orange.shade700,
-                        ),
-                        SizedBox(width: 6.w),
-                        Text(
-                          'Tutup otomatis dalam ${_getCountdownText()}',
-                          style: TextStyle(
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.orange.shade700,
+              ),
+              SizedBox(height: 40.h),
+              Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isProcessing ? null : _handleDone,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        padding: EdgeInsets.symmetric(vertical: 4.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5.r),
+                          side: const BorderSide(
+                            color: Colors.black,
+                            width: 2,
                           ),
                         ),
-                      ],
+                        elevation: 0,
+                      ),
+                      child: isProcessing
+                          ? SizedBox(
+                        height: 16.h,
+                        width: 16.h,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                        ),
+                      )
+                          : Text(
+                        "I've prayed",
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isProcessing ? null : _handleSnooze,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        padding: EdgeInsets.symmetric(vertical: 4.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5.r),
+                          side: const BorderSide(
+                            color: Colors.black,
+                            width: 2,
+                          ),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        "On my way",
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                  TextButton(
+                    onPressed: isProcessing ? null : _forceCloseOverlay,
+                    child: Text(
+                      'Skip this time',
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        color: Colors.black12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
-                SizedBox(height: 20.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: isProcessing ? null : _handleDone,
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                            color: Colors.black87,
-                            width: 2,
-                          ),
-                          foregroundColor: Colors.black87,
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                        ),
-                        child: isProcessing
-                            ? SizedBox(
-                          height: 14.h,
-                          width: 14.h,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
-                        )
-                            : Text(
-                          'Done',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: isProcessing ? null : _handleSnooze,
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                            color: Colors.black87,
-                            width: 2,
-                          ),
-                          foregroundColor: Colors.black87,
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                        ),
-                        child: Text(
-                          _getSnoozeDurationText(),
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPopupOverlay() {
+    final prayerName = data?['prayerName'] ?? 'Prayer';
+    final message = data?['message'] ?? 'Please pray soon.';
+
+    return Material(
+      color: Colors.black.withOpacity(0.6),
+      child: Center(
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: 340.w,
+            minWidth: 300.w,
+          ),
+          margin: EdgeInsets.symmetric(horizontal: 24.w),
+          padding: EdgeInsets.all(20.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(
+              color: Colors.black,
+              width: 1.5.w,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 40,
+                offset: const Offset(0, 15),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgPicture.asset(
+                'assets/icons/logo.svg',
+                width: 80.w,
+                height: 80.w,
+                fit: BoxFit.contain,
+                colorFilter: const ColorFilter.mode(
+                  Colors.black,
+                  BlendMode.srcIn,
                 ),
-              ],
+              ),
+              SizedBox(height: 40.h),
+              Text(
+                prayerName,
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              SizedBox(height: 12.h),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: Colors.black,
+                  fontWeight: FontWeight.w600,
+                  height: 1.4,
+                ),
+              ),
+              SizedBox(height: 40.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: isProcessing ? null : _handleDone,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        padding: EdgeInsets.symmetric(vertical: 4.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5.r),
+                          side: const BorderSide(
+                            color: Colors.black,
+                            width: 2,
+                          ),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: isProcessing
+                          ? SizedBox(
+                        height: 16.h,
+                        width: 16.h,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                        ),
+                      )
+                          : Text(
+                        "I've prayed",
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: isProcessing ? null : _handleSnooze,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        padding: EdgeInsets.symmetric(vertical: 4.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5.r),
+                          side: const BorderSide(
+                            color: Colors.black,
+                            width: 2,
+                          ),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        "Later",
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

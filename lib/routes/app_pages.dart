@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:solat/page/onboarding/OnboardingBinding.dart';
+import 'package:solat/page/onboarding/OnboardingScreen.dart';
 import '../page/splash/SplashScreen.dart';
 import '../page/splash/SplashBinding.dart';
 import '../page/main/MainScreen.dart';
@@ -25,5 +27,12 @@ class AppPages {
       ],
     ),
 
+    GetPage(
+        name: AppRoutes.ONBOARDING,
+        page: () => OnboardingScreen(),
+        bindings: [
+          OnboardingBinding(),
+        ],
+    )
   ];
 }

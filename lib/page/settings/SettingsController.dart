@@ -2,7 +2,6 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../service/OverlayService.dart';
@@ -239,10 +238,10 @@ Tap Continue to grant these permissions.
     final oemInfo = await _permissionHelper.getOEMInfo();
 
     String statusText = 'Permission Status:\n\n';
-    statusText += '📱 Overlay: ${hasOverlayPermission.value ? "✅" : "❌"}\n';
-    statusText += '🔔 Notifications: ${notificationEnabled.value ? "✅" : "❌"}\n';
-    statusText += '🔋 Battery Exemption: ${hasBatteryExemption.value ? "✅" : "❌"}\n';
-    statusText += '\n📱 Device: ${oemInfo.deviceName}\n';
+    statusText += 'Overlay: ${hasOverlayPermission.value ? "✓" : "×"}\n';
+    statusText += 'Notifications: ${notificationEnabled.value ? "✓" : "×"}\n';
+    statusText += 'Battery Exemption: ${hasBatteryExemption.value ? "✓" : "×"}\n';
+    statusText += '\nDevice: ${oemInfo.deviceName}\n';
 
     if (oemInfo.isProblematic) {
       statusText += '\n⚠️ This device may require additional settings.';
@@ -269,128 +268,9 @@ Tap Continue to grant these permissions.
       ),
     );
   }
-
-  // ✅ Test overlay dengan 3 intensity levels
-  Future<void> testOverlayDetailed() async {
-    debugPrint('🧪 === STARTING DETAILED OVERLAY TEST ===');
-
-    final hasPermission = await _overlayService.hasOverlayPermission();
-    debugPrint('🔍 Has permission: $hasPermission');
-
-    if (!hasPermission) {
-      showToast('Grant overlay permission first');
-      return;
-    }
-
-    final isActive = await _overlayService.isOverlayActive();
-    debugPrint('📊 Is overlay active: $isActive');
-
-    showToast('Starting test in 2 seconds...');
-    await Future.delayed(const Duration(seconds: 2));
-
-    try {
-      debugPrint('🚀 Calling showPrayerOverlay...');
-
-      final testLevel = testAttempt.value % 3;
-      final levelNames = ['Gentle', 'High', 'Critical'];
-
-      await _overlayService.showPrayerOverlay(
-        prayerName: 'Test - ${levelNames[testLevel]}',
-        message: 'Testing ${levelNames[testLevel]} intensity level.\nAttempt ${testLevel + 1} of 3.',
-        nextPrayerTime: 'Dzuhur 12:00',
-        currentTime: DateTime.now().toString(),
-        forceAttempt: testLevel,
-      );
-
-      debugPrint('✅ showPrayerOverlay completed');
-
-      await Future.delayed(const Duration(milliseconds: 500));
-      final isNowActive = await _overlayService.isOverlayActive();
-      debugPrint('✅ Is overlay active after show: $isNowActive');
-
-      if (isNowActive) {
-        showToast('${levelNames[testLevel]} overlay shown!');
-      } else {
-        showToast('Overlay failed to show!');
-      }
-
-    } catch (e, stackTrace) {
-      debugPrint('❌ Error in test: $e');
-      debugPrint('Stack trace: $stackTrace');
-      showToast('Test failed: $e');
-    }
-
-    testAttempt.value = (testAttempt.value + 1) % 3;
-    debugPrint('🧪 === TEST COMPLETED ===');
-  }
-
-  // ✅ Test all 3 intensity levels sequentially
-  Future<void> testAllIntensities() async {
-    if (!hasOverlayPermission.value) {
-      showToast('Grant overlay permission first');
-      return;
-    }
-
-    showToast('Testing all 3 intensity levels...');
-
-    final levelNames = ['Gentle', 'High', 'Critical'];
-    final durations = [3, 2, 0];
-
-    for (int i = 0; i < 3; i++) {
-      await Future.delayed(Duration(seconds: i == 0 ? 2 : 3));
-
-      showToast('Testing: ${levelNames[i]} (${i + 1}/3)');
-
-      await _overlayService.showPrayerOverlay(
-        prayerName: 'Test - ${levelNames[i]}',
-        message: 'Testing ${levelNames[i]} intensity.\n${durations[i] > 0 ? "Auto-close: ${durations[i]} min" : "Persistent (no timeout)"}',
-        nextPrayerTime: 'Next Prayer 12:00',
-        currentTime: DateTime.now().toString(),
-        forceAttempt: i,
-      );
-
-      if (i < 2) {
-        await Future.delayed(const Duration(seconds: 8));
-      }
-    }
-
-    showToast('All intensity tests completed!');
-    testAttempt.value = 0;
-  }
-
   Future<void> resetPrayerAttempt(String prayerName) async {
     await _overlayService.resetAttempt(prayerName);
     showToast('Attempts reset for $prayerName');
   }
 
-  void viewAttempts() {
-    final prayers = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
-    String report = 'Current Attempts:\n';
-
-    for (var prayer in prayers) {
-      final attempts = _overlayService.getAttemptCount(prayer);
-      report += '$prayer: $attempts/3\n';
-    }
-
-    Get.defaultDialog(
-      title: 'Prayer Attempts',
-      middleText: report,
-      textConfirm: 'OK',
-      onConfirm: () => Get.back(),
-    );
-  }
-
-  Future<void> testNotification() async {
-    if (!notificationEnabled.value) {
-      showToast('Enable notifications first');
-      return;
-    }
-
-    await _notificationService.showInstantNotification(
-      title: '🕌 Test Notification',
-      body: 'This is a test notification. Notifications are working!',
-    );
-
-    showToast('Notification sent');
-  }
 }
