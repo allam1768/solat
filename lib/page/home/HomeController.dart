@@ -38,7 +38,6 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   Timer? _timer;
   bool _hasShownDialog = false;
-  bool _hasInitializedData = false; // ✅ ensure data is fetched only once
 
   Rx<Map<String, String>?> get prayerTimes => Rx<Map<String, String>?>({
     'Fajr': fajrTime.value,
@@ -53,19 +52,10 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
-    _startClock(); // ✅ Clock tetap jalan
-    // ✅ TIDAK auto-fetch data di sini
-  }
-
-  @override
-  void onReady() {
-    super.onReady();
-    // ✅ Fetch data once the screen is ready
-    if (!_hasInitializedData) {
-      _hasInitializedData = true;
-      debugPrint('Home screen ready, fetching data...');
-      _requestLocationPermissionAndFetch();
-    }
+    _startClock();
+    // ✅ Langsung fetch data saat init
+    debugPrint('HomeController initialized, fetching location...');
+    _requestLocationPermissionAndFetch();
   }
 
   @override
@@ -98,7 +88,6 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         cityName.value = 'Location services off';
         provinceName.value = 'Tap to enable';
         isLoadingLocation.value = false;
-        // ✅ Don't auto-show dialog; let user tap
         return;
       }
 
@@ -121,12 +110,17 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       }
 
       // ✅ If permission is OK, fetch location
+      debugPrint('📍 Getting current position...');
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
       );
 
       latitude = position.latitude;
       longitude = position.longitude;
+
+      debugPrint('📍 Position obtained: $latitude, $longitude');
+      debugPrint('📍 Getting address from coordinates...');
 
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
@@ -139,6 +133,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
             place.locality ??
             'City not found';
         provinceName.value = place.administrativeArea ?? '';
+        debugPrint('📍 Location found: ${cityName.value}, ${provinceName.value}');
       } else {
         cityName.value = 'Location not found';
         provinceName.value = '';
@@ -146,9 +141,11 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
       isLoadingLocation.value = false;
 
+      // ✅ Fetch prayer times immediately after getting location
+      debugPrint('🕌 Fetching prayer times...');
       await _fetchPrayerTimes();
     } catch (e) {
-      debugPrint('Error getting location: $e');
+      debugPrint('❌ Error getting location: $e');
       locationError.value = 'Failed to get location';
       cityName.value = 'Failed to load';
       provinceName.value = 'Tap to retry';
@@ -287,7 +284,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> refreshLocation() async {
-    _hasShownDialog = false; // Reset dialog flag
+    _hasShownDialog = false;
     await _requestLocationPermissionAndFetch();
   }
 
@@ -324,6 +321,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         maghribTime.value = _formatPrayerTime(timings['Maghrib']);
         ishaTime.value = _formatPrayerTime(timings['Isha']);
 
+        debugPrint('✅ Prayer times loaded successfully');
         isLoadingPrayer.value = false;
 
         Future.delayed(const Duration(milliseconds: 100), () {
