@@ -10,7 +10,7 @@ import 'dart:convert';
 import '../../service/NotificationService.dart';
 import '../../service/OverlaySchedulerService.dart';
 
-class HomeController extends GetxController {
+class HomeController extends GetxController with WidgetsBindingObserver {
   final NotificationService _notificationService = NotificationService();
   final OverlaySchedulerService _overlayScheduler = OverlaySchedulerService();
 
@@ -37,8 +37,9 @@ class HomeController extends GetxController {
   double? longitude;
 
   Timer? _timer;
+  bool _hasShownDialog = false;
+  bool _hasInitializedData = false; // ✅ Flag biar data cuma diambil sekali
 
-  // ✅ TAMBAHKAN GETTER UNTUK PRAYER TIMES
   Rx<Map<String, String>?> get prayerTimes => Rx<Map<String, String>?>({
     'Fajr': fajrTime.value,
     'Sunrise': sunriseTime.value,
@@ -51,19 +52,38 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _requestLocationPermissionAndFetch();
-    _startClock();
+    WidgetsBinding.instance.addObserver(this);
+    _startClock(); // ✅ Clock tetap jalan
+    // ✅ TIDAK auto-fetch data di sini
   }
 
   @override
   void onReady() {
     super.onReady();
+    // ✅ Fetch data PAS screen udah ready (user udah liat screen)
+    if (!_hasInitializedData) {
+      _hasInitializedData = true;
+      debugPrint('🏠 Home screen ready, fetching data...');
+      _requestLocationPermissionAndFetch();
+    }
   }
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.onClose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // ✅ Saat app kembali dari background (Settings), re-check location
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('🔄 App resumed, rechecking location...');
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _requestLocationPermissionAndFetch();
+      });
+    }
   }
 
   Future<void> _requestLocationPermissionAndFetch() async {
@@ -71,37 +91,36 @@ class HomeController extends GetxController {
       isLoadingLocation.value = true;
       locationError.value = '';
 
+      // ✅ Check GPS dulu, tapi DIAM aja kalau mati
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        locationError.value = 'Lokasi tidak aktif';
+        locationError.value = 'GPS tidak aktif';
         cityName.value = 'GPS Mati';
-        provinceName.value = '';
+        provinceName.value = 'Tap untuk aktifkan';
         isLoadingLocation.value = false;
-        _showGPSDialog();
+        // ✅ TIDAK auto-show dialog, biarkan user yang tap
         return;
       }
 
+      // ✅ Check permission, tapi DIAM aja kalau belum ada
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          locationError.value = 'Izin lokasi ditolak';
-          cityName.value = 'Izin ditolak';
-          provinceName.value = '';
-          isLoadingLocation.value = false;
-          return;
-        }
+        locationError.value = 'Izin lokasi diperlukan';
+        cityName.value = 'Izin Lokasi Diperlukan';
+        provinceName.value = 'Tap untuk aktifkan';
+        isLoadingLocation.value = false;
+        return;
       }
 
       if (permission == LocationPermission.deniedForever) {
         locationError.value = 'Izin lokasi ditolak permanen';
-        cityName.value = 'Buka pengaturan';
+        cityName.value = 'Buka Pengaturan';
         provinceName.value = 'untuk izin lokasi';
         isLoadingLocation.value = false;
-        _showPermissionDialog();
         return;
       }
 
+      // ✅ Kalau permission OK, baru ambil lokasi
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
@@ -129,12 +148,52 @@ class HomeController extends GetxController {
 
       await _fetchPrayerTimes();
     } catch (e) {
-      debugPrint('Error getting location: $e');
+      debugPrint('❌ Error getting location: $e');
       locationError.value = 'Gagal mendapatkan lokasi';
       cityName.value = 'Gagal memuat';
-      provinceName.value = '';
+      provinceName.value = 'Tap untuk coba lagi';
       isLoadingLocation.value = false;
     }
+  }
+
+  // ✅ Function baru: untuk handle tap pada location card
+  Future<void> handleLocationTap() async {
+    if (locationError.value.isEmpty) {
+      // Kalau tidak ada error, refresh aja
+      await refreshLocation();
+      return;
+    }
+
+    // ✅ Kalau GPS mati, buka dialog GPS
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (!_hasShownDialog) {
+        _hasShownDialog = true;
+        _showGPSDialog();
+      }
+      return;
+    }
+
+    // ✅ Kalau permission denied, buka dialog permission
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      if (!_hasShownDialog) {
+        _hasShownDialog = true;
+        _showPermissionRequestDialog();
+      }
+      return;
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      if (!_hasShownDialog) {
+        _hasShownDialog = true;
+        _showPermissionDialog();
+      }
+      return;
+    }
+
+    // Kalau semua OK, refresh
+    await refreshLocation();
   }
 
   void _showGPSDialog() {
@@ -145,17 +204,53 @@ class HomeController extends GetxController {
             'Aplikasi membutuhkan GPS untuk menampilkan jadwal sholat sesuai lokasi Anda. Aktifkan GPS sekarang?'),
         actions: [
           TextButton(
-            onPressed: () => Get.back(),
+            onPressed: () {
+              Get.back();
+              _hasShownDialog = false;
+            },
             child: const Text('Nanti'),
           ),
           ElevatedButton(
             onPressed: () async {
               Get.back();
+              _hasShownDialog = false;
               await Geolocator.openLocationSettings();
               await Future.delayed(const Duration(seconds: 1));
               await refreshLocation();
             },
             child: const Text('Buka Pengaturan'),
+          ),
+        ],
+      ),
+      barrierDismissible: false,
+    );
+  }
+
+  void _showPermissionRequestDialog() {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Izin Lokasi Diperlukan'),
+        content: const Text(
+            'Aplikasi membutuhkan izin lokasi untuk menampilkan jadwal sholat sesuai lokasi Anda. Berikan izin sekarang?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Get.back();
+              _hasShownDialog = false;
+            },
+            child: const Text('Nanti'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Get.back();
+              _hasShownDialog = false;
+              LocationPermission permission = await Geolocator.requestPermission();
+              if (permission == LocationPermission.whileInUse ||
+                  permission == LocationPermission.always) {
+                await refreshLocation();
+              }
+            },
+            child: const Text('Berikan Izin'),
           ),
         ],
       ),
@@ -171,12 +266,16 @@ class HomeController extends GetxController {
             'Aplikasi membutuhkan izin lokasi untuk menampilkan jadwal sholat. Silakan aktifkan izin lokasi di pengaturan aplikasi.'),
         actions: [
           TextButton(
-            onPressed: () => Get.back(),
+            onPressed: () {
+              Get.back();
+              _hasShownDialog = false;
+            },
             child: const Text('Nanti'),
           ),
           ElevatedButton(
             onPressed: () async {
               Get.back();
+              _hasShownDialog = false;
               await Geolocator.openAppSettings();
             },
             child: const Text('Buka Pengaturan'),
@@ -188,6 +287,7 @@ class HomeController extends GetxController {
   }
 
   Future<void> refreshLocation() async {
+    _hasShownDialog = false; // Reset dialog flag
     await _requestLocationPermissionAndFetch();
   }
 
@@ -267,7 +367,7 @@ class HomeController extends GetxController {
     try {
       await Future.delayed(const Duration(milliseconds: 500));
 
-      debugPrint('📢 Scheduling notifications...');
+      debugPrint('🔔 Scheduling notifications...');
 
       await _notificationService.schedulePrayerNotifications(
         fajrTime: fajrTime.value,

@@ -16,40 +16,39 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 @pragma("vm:entry-point")
 void overlayMain() {
   WidgetsFlutterBinding.ensureInitialized();
-  debugPrint('🎯 === OVERLAY ENTRY POINT CALLED ===');
   runApp(const OverlayApp());
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  debugPrint('🚀 === APP STARTING ===');
-
+  // ✅ Init storage dulu
   await GetStorage.init();
-  debugPrint('✅ GetStorage initialized');
 
+  // ✅ Initialize notification service (tanpa request permission)
   await NotificationService().initialize();
-  debugPrint('✅ NotificationService initialized');
 
+  // ✅ Initialize overlay channel (tanpa request permission)
   await OverlaySchedulerService().initializeOverlayChannel();
-  debugPrint('✅ OverlayScheduler initialized');
 
+  // ✅ Setup notification listeners
   AwesomeNotifications().setListeners(
     onActionReceivedMethod: NotificationController.onActionReceivedMethod,
     onNotificationCreatedMethod: NotificationController.onNotificationCreatedMethod,
     onNotificationDisplayedMethod: NotificationController.onNotificationDisplayedMethod,
     onDismissActionReceivedMethod: NotificationController.onDismissActionReceivedMethod,
   );
-  debugPrint('✅ Notification listeners set');
 
+  // ✅ Setup overlay listener
   _setupOverlayDataListener();
-  debugPrint('✅ Overlay data listener registered');
 
+  // ✅ Lock orientation
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
+  // ✅ Setup system UI
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -57,30 +56,21 @@ void main() async {
     ),
   );
 
-  debugPrint('🎉 === APP INITIALIZATION COMPLETE ===\n');
   runApp(const MyApp());
 }
 
-// ✅ Schedule backup snooze notifications (2 backup = 3 total overlay)
 Future<void> _scheduleBackupSnoozes(String prayerName, String message, String nextPrayerName, String nextPrayerTime) async {
   try {
     final storage = GetStorage();
     final now = DateTime.now();
-
-    debugPrint('📢 === SCHEDULING BACKUP SNOOZES ===');
-    debugPrint('   Prayer: $prayerName');
-
-    // ✅ Schedule 2 backup snoozes (overlay 2 dan 3)
     final snoozeIds = <int>[];
 
     for (int i = 0; i < 2; i++) {
-      final snoozeMinutes = 5; // Semua jarak 5 menit
-      final triggerTime = now.add(Duration(minutes: (i + 1) * snoozeMinutes)); // +5min, +10min
+      final snoozeMinutes = 5;
+      final triggerTime = now.add(Duration(minutes: (i + 1) * snoozeMinutes));
       final snoozeId = 200 + (prayerName.hashCode % 50) + i;
 
       snoozeIds.add(snoozeId);
-
-      debugPrint('   📅 Backup snooze ${i + 2}: ${triggerTime.hour}:${triggerTime.minute.toString().padLeft(2, '0')} (ID: $snoozeId)');
 
       await AwesomeNotifications().createNotification(
         content: NotificationContent(
@@ -101,7 +91,7 @@ Future<void> _scheduleBackupSnoozes(String prayerName, String message, String ne
             'nextPrayerName': nextPrayerName,
             'nextPrayerTime': nextPrayerTime,
             'isSnooze': 'true',
-            'attempt': '${i + 1}', // Attempt 1 (overlay 2), Attempt 2 (overlay 3 - CRITICAL)
+            'attempt': '${i + 1}',
           },
         ),
         schedule: NotificationCalendar(
@@ -119,73 +109,45 @@ Future<void> _scheduleBackupSnoozes(String prayerName, String message, String ne
       );
     }
 
-    // ✅ Save scheduled snooze IDs to storage for cancellation
     await storage.write('backup_snooze_ids_$prayerName', snoozeIds);
-
-    debugPrint('✅ Backup snoozes scheduled: ${snoozeIds.join(", ")}');
-    debugPrint('✅ === BACKUP SNOOZES COMPLETE ===');
-
   } catch (e, stack) {
-    debugPrint('❌ Error scheduling backup snoozes: $e');
+    debugPrint('Error scheduling backup snoozes: $e');
     debugPrint('Stack: $stack');
   }
 }
 
-// ✅ Cancel backup snoozes when Done is pressed
 Future<void> _cancelBackupSnoozes(String prayerName) async {
   try {
     final storage = GetStorage();
     final snoozeIds = storage.read('backup_snooze_ids_$prayerName') as List<dynamic>?;
 
-    if (snoozeIds == null || snoozeIds.isEmpty) {
-      debugPrint('ℹ️ No backup snoozes to cancel for $prayerName');
-      return;
-    }
+    if (snoozeIds == null || snoozeIds.isEmpty) return;
 
-    debugPrint('🗑️ === CANCELLING BACKUP SNOOZES ===');
-    debugPrint('   Prayer: $prayerName');
-    debugPrint('   IDs to cancel: ${snoozeIds.join(", ")}');
-
-    int cancelledCount = 0;
     for (final id in snoozeIds) {
       try {
         await AwesomeNotifications().cancel(id as int);
-        cancelledCount++;
-        debugPrint('   ✅ Cancelled notification ID: $id');
       } catch (e) {
-        debugPrint('   ⚠️ Failed to cancel ID $id: $e');
+        debugPrint('Failed to cancel snooze $id: $e');
       }
     }
 
-    // Remove from storage
     await storage.remove('backup_snooze_ids_$prayerName');
-
-    debugPrint('✅ Cancelled $cancelledCount/${snoozeIds.length} backup snoozes');
-    debugPrint('✅ === BACKUP SNOOZES CANCELLATION COMPLETE ===');
-
   } catch (e, stack) {
-    debugPrint('❌ Error cancelling backup snoozes: $e');
+    debugPrint('Error cancelling backup snoozes: $e');
     debugPrint('Stack: $stack');
   }
 }
 
 void _setupOverlayDataListener() {
-  debugPrint('🎧 === OVERLAY DATA LISTENER REGISTERED ===');
-
   FlutterOverlayWindow.overlayListener.listen((data) async {
     try {
-      debugPrint('📨 === RECEIVED DATA FROM OVERLAY ===');
-      debugPrint('📦 Raw Data: $data');
-
       final action = data['action'];
       final prayerName = data['prayerName'];
 
       if (action == null || prayerName == null) {
-        debugPrint('⚠️ Invalid data from overlay: $data');
+        debugPrint('Invalid overlay data: $data');
         return;
       }
-
-      debugPrint('🔥 Processing action: $action for prayer: $prayerName');
 
       final scheduler = OverlaySchedulerService();
       final overlayService = OverlayService();
@@ -194,15 +156,9 @@ void _setupOverlayDataListener() {
 
       switch (action) {
         case 'prayer_done':
-          debugPrint('✅ === HANDLING PRAYER DONE ===');
-
-          // ✅ 1. Reset attempt counter
           await scheduler.handlePrayerDone(prayerName);
-
-          // ✅ 2. Cancel ALL backup snoozes (ini yang penting!)
           await _cancelBackupSnoozes(prayerName);
 
-          // ✅ 3. Close overlay if still active
           try {
             final isActive = await overlayService.isOverlayActive();
             if (isActive) {
@@ -210,74 +166,93 @@ void _setupOverlayDataListener() {
                 const Duration(milliseconds: 500),
                 onTimeout: () => false,
               );
-              debugPrint('✅ Overlay closed');
             }
           } catch (e) {
-            debugPrint('⚠️ Error checking/closing overlay: $e');
+            debugPrint('Error closing overlay: $e');
           }
-
-          debugPrint('✅ === PRAYER DONE COMPLETE ===');
-          debugPrint('   - Attempts reset');
-          debugPrint('   - Backup snoozes cancelled');
-          debugPrint('   - Overlay closed');
           break;
 
         default:
-          debugPrint('⚠️ Unknown action: $action');
+          debugPrint('Unknown action: $action');
       }
-
-      debugPrint('✅ === DATA PROCESSING COMPLETE ===\n');
     } catch (e, stack) {
-      debugPrint('❌ === ERROR IN OVERLAY LISTENER ===');
-      debugPrint('Error: $e');
-      debugPrint('Stack trace: $stack');
+      debugPrint('Error in overlay listener: $e');
+      debugPrint('Stack: $stack');
 
       try {
         await FlutterOverlayWindow.closeOverlay().timeout(
           const Duration(milliseconds: 500),
           onTimeout: () => false,
         );
-      } catch (_) {
-        debugPrint('⚠️ Could not close overlay in error handler');
-      }
+      } catch (_) {}
     }
   });
-
-  debugPrint('✅ Overlay listener setup complete');
 }
 
 class NotificationController {
   @pragma("vm:entry-point")
   static Future<void> onNotificationCreatedMethod(
       ReceivedNotification receivedNotification) async {
-    debugPrint('✅ Notification created: ${receivedNotification.id} - ${receivedNotification.title}');
+    if (receivedNotification.title == 'prayer_done_signal') {
+      final prayerName = receivedNotification.body ?? 'Unknown';
+      await _handlePrayerDoneFromOverlay(prayerName);
+    }
   }
 
   @pragma("vm:entry-point")
   static Future<void> onNotificationDisplayedMethod(
       ReceivedNotification receivedNotification) async {
-    debugPrint('✅ Notification displayed: ${receivedNotification.id} - ${receivedNotification.title}');
-
     if (receivedNotification.title == 'overlay_trigger') {
-      debugPrint('🔥 Overlay trigger detected in displayed method');
       await _handleOverlayTrigger(receivedNotification);
+    }
+
+    if (receivedNotification.title == 'prayer_done_signal') {
+      final prayerName = receivedNotification.body ?? 'Unknown';
+      await _handlePrayerDoneFromOverlay(prayerName);
     }
   }
 
   @pragma("vm:entry-point")
   static Future<void> onDismissActionReceivedMethod(
       ReceivedAction receivedAction) async {
-    debugPrint('⚠️ Notification dismissed: ${receivedAction.id}');
+    // Silent dismiss
   }
 
   @pragma("vm:entry-point")
   static Future<void> onActionReceivedMethod(
       ReceivedAction receivedAction) async {
-    debugPrint('✅ Notification action received: ${receivedAction.id}');
-
     if (receivedAction.payload?['type'] == 'overlay_trigger') {
-      debugPrint('🔥 Overlay trigger detected in action method');
       await _handleOverlayTrigger(receivedAction);
+    }
+
+    if (receivedAction.payload?['type'] == 'prayer_done') {
+      final prayerName = receivedAction.payload?['prayerName'] ?? 'Unknown';
+      await _handlePrayerDoneFromOverlay(prayerName);
+    }
+  }
+
+  static Future<void> _handlePrayerDoneFromOverlay(String prayerName) async {
+    try {
+      final scheduler = OverlaySchedulerService();
+
+      await scheduler.handlePrayerDone(prayerName);
+      await _cancelBackupSnoozes(prayerName);
+
+      try {
+        final overlayService = OverlayService();
+        final isActive = await overlayService.isOverlayActive();
+        if (isActive) {
+          await FlutterOverlayWindow.closeOverlay().timeout(
+            const Duration(milliseconds: 500),
+            onTimeout: () => false,
+          );
+        }
+      } catch (e) {
+        debugPrint('Overlay close error: $e');
+      }
+    } catch (e, stack) {
+      debugPrint('Error handling prayer done: $e');
+      debugPrint('Stack: $stack');
     }
   }
 
@@ -292,7 +267,7 @@ class NotificationController {
       }
 
       if (payload == null) {
-        debugPrint('❌ No payload found in notification');
+        debugPrint('No payload in notification');
         return;
       }
 
@@ -301,38 +276,24 @@ class NotificationController {
       final nextPrayerName = payload['nextPrayerName'] ?? '';
       final nextPrayerTime = payload['nextPrayerTime'] ?? '';
       final isSnooze = payload['isSnooze'] == 'true';
-
-      // ✅ AMBIL ATTEMPT DARI PAYLOAD (untuk backup snooze)
       final attemptFromPayload = int.tryParse(payload['attempt'] ?? '0') ?? 0;
-
-      debugPrint('🔥 === OVERLAY TRIGGER FIRED ===');
-      debugPrint('   Prayer: $prayerName');
-      debugPrint('   Message: $message');
-      debugPrint('   Next: $nextPrayerName $nextPrayerTime');
-      debugPrint('   Is Snooze: $isSnooze');
-      debugPrint('   Attempt: $attemptFromPayload');
 
       final overlayService = OverlayService();
 
-      // ✅ If NOT snooze (first trigger), schedule backup snoozes
       if (!isSnooze) {
-        debugPrint('🎯 First trigger - scheduling backup snoozes');
         await _scheduleBackupSnoozes(prayerName, message, nextPrayerName, nextPrayerTime);
       }
 
-      // ✅ GUNAKAN ATTEMPT DARI PAYLOAD untuk backup snooze
       await overlayService.showPrayerOverlay(
         prayerName: prayerName,
         message: message,
         nextPrayerTime: '$nextPrayerName $nextPrayerTime',
         currentTime: DateTime.now().toString(),
-        forceAttempt: isSnooze ? attemptFromPayload : 0, // ✅ Force attempt dari payload
+        forceAttempt: isSnooze ? attemptFromPayload : 0,
       );
-
-      debugPrint('✅ === OVERLAY TRIGGER COMPLETE ===');
     } catch (e, stack) {
-      debugPrint('❌ Error handling overlay trigger: $e');
-      debugPrint('Stack trace: $stack');
+      debugPrint('Error handling overlay trigger: $e');
+      debugPrint('Stack: $stack');
     }
   }
 }

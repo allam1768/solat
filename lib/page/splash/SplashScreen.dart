@@ -22,7 +22,7 @@ class SplashScreen extends GetView<SplashController> {
           height: 100.w,
           fit: BoxFit.contain,
           colorFilter: ColorFilter.mode(
-            colorScheme.onBackground, // 🔑 otomatis hitam / putih
+            colorScheme.onBackground,
             BlendMode.srcIn,
           ),
         ),

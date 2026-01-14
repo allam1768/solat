@@ -1,8 +1,10 @@
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:get/get_state_manager/src/simple/get_controllers.dart';
+import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import '../../routes/app_routes.dart';
 
 class SplashController extends GetxController {
+  final _storage = GetStorage();
+
   @override
   void onInit() {
     super.onInit();
@@ -11,9 +13,16 @@ class SplashController extends GetxController {
   }
 
   void _navigateToNextScreen() async {
-    print('DELAY START');
-    await Future.delayed(const Duration(seconds: 3));
-    print('TRY NAVIGATE');
-    Get.offNamed('/main');
+    await Future.delayed(const Duration(seconds: 2));
+
+    final bool onboardingCompleted = _storage.read('onboarding_completed') ??
+        false;
+    print('Onboarding status: $onboardingCompleted'); // Debug print
+
+    if (onboardingCompleted) {
+      Get.offNamed(AppRoutes.MAIN);
+    } else {
+      Get.offNamed(AppRoutes.ONBOARDING);
+    }
   }
 }

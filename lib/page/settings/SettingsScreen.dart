@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:solat/routes/app_routes.dart';
 import 'SettingsController.dart';
 
 class SettingsScreen extends GetView<SettingsController> {
@@ -30,17 +31,9 @@ class SettingsScreen extends GetView<SettingsController> {
                 ),
               ),
 
-              SizedBox(height: 8.h),
 
-              Text(
-                'Manage your prayer reminders',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: isDark ? Colors.white60 : Colors.black54,
-                ),
-              ),
 
-              SizedBox(height: 35.h),
+              SizedBox(height: 20.h),
 
               // ============ PERMISSIONS SECTION ============
               _buildSectionHeader('Permissions', isDark),
@@ -51,18 +44,14 @@ class SettingsScreen extends GetView<SettingsController> {
 
               SizedBox(height: 13.h),
 
-              // Individual Permission Cards
-              _buildNotificationCard(context, isDark),
+              _buildBatteryOptimizationCard(context, isDark),
 
               SizedBox(height: 13.h),
 
               _buildOverlayPermissionCard(context, isDark),
 
-              SizedBox(height: 13.h),
 
-              _buildBatteryOptimizationCard(context, isDark),
-
-              SizedBox(height: 35.h),
+              SizedBox(height: 30.h),
 
               // ============ APP SETTINGS SECTION ============
               _buildSectionHeader('App Settings', isDark),
@@ -71,62 +60,6 @@ class SettingsScreen extends GetView<SettingsController> {
               // Theme Setting
               _buildThemeCard(context, isDark),
 
-              SizedBox(height: 35.h),
-
-              // ============ TESTING SECTION ============
-              _buildSectionHeader('Testing & Debug', isDark),
-              SizedBox(height: 12.h),
-
-              // Test Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTestButton(
-                      context,
-                      label: 'Test Overlay',
-                      icon: Icons.layers_outlined,
-                      onTap: controller.testOverlayDetailed,
-                      isDark: isDark,
-                    ),
-                  ),
-                  SizedBox(width: 10.w),
-                  Expanded(
-                    child: _buildTestButton(
-                      context,
-                      label: 'Test Notification',
-                      icon: Icons.notifications_outlined,
-                      onTap: controller.testNotification,
-                      isDark: isDark,
-                    ),
-                  ),
-                ],
-              ),
-
-              SizedBox(height: 10.h),
-
-              // Test All Intensities
-              _buildTestButton(
-                context,
-                label: 'Test All Intensities (3 Levels)',
-                icon: Icons.psychology_outlined,
-                onTap: controller.testAllIntensities,
-                isDark: isDark,
-                isFullWidth: true,
-              ),
-
-              SizedBox(height: 10.h),
-
-              // View Attempts
-              _buildTestButton(
-                context,
-                label: 'View Prayer Attempts',
-                icon: Icons.list_alt,
-                onTap: controller.viewAttempts,
-                isDark: isDark,
-                isFullWidth: true,
-              ),
-
-              SizedBox(height: 30.h),
             ],
           ),
         ),
@@ -168,7 +101,7 @@ class SettingsScreen extends GetView<SettingsController> {
                     color: allGranted
                         ? Colors.green.withOpacity(0.1)
                         : Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10.r),
+                    borderRadius: BorderRadius.circular(5.r),
                   ),
                   child: Icon(
                     allGranted ? Icons.check_circle : Icons.error_outline,
@@ -214,7 +147,7 @@ class SettingsScreen extends GetView<SettingsController> {
                     color: allGranted
                         ? Colors.green.withOpacity(0.2)
                         : Colors.orange.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20.r),
+                    borderRadius: BorderRadius.circular(5.r),
                     border: Border.all(
                       color: allGranted ? Colors.green : Colors.orange,
                       width: 1.5.w,
@@ -239,7 +172,7 @@ class SettingsScreen extends GetView<SettingsController> {
                 padding: EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
                   color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8.r),
+                  borderRadius: BorderRadius.circular(5.r),
                   border: Border.all(
                     color: Colors.orange.withOpacity(0.3),
                     width: 1.w,
@@ -310,7 +243,7 @@ class SettingsScreen extends GetView<SettingsController> {
                 Expanded(
                   flex: 2,
                   child: _buildActionButton(
-                    label: allGranted ? 'All Set ✓' : 'Setup All',
+                    label: allGranted ? 'All Set' : 'Setup All',
                     icon: allGranted ? Icons.done : Icons.settings,
                     onTap: allGranted ? null : controller.requestAllPermissions,
                     isPrimary: true,
@@ -365,7 +298,7 @@ class SettingsScreen extends GetView<SettingsController> {
             padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
               color: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
-              borderRadius: BorderRadius.circular(8.r),
+              borderRadius: BorderRadius.circular(5.r),
             ),
             child: Icon(
               Icons.notifications_outlined,
@@ -420,7 +353,7 @@ class SettingsScreen extends GetView<SettingsController> {
                 padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
                   color: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8.r),
+                  borderRadius: BorderRadius.circular(5.r),
                 ),
                 child: Icon(
                   Icons.layers_outlined,
@@ -511,7 +444,7 @@ class SettingsScreen extends GetView<SettingsController> {
                 padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
                   color: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8.r),
+                  borderRadius: BorderRadius.circular(5.r),
                 ),
                 child: Icon(
                   Icons.battery_charging_full,
@@ -608,7 +541,7 @@ class SettingsScreen extends GetView<SettingsController> {
             padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
               color: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
-              borderRadius: BorderRadius.circular(8.r),
+              borderRadius: BorderRadius.circular(5.r),
             ),
             child: Icon(
               isDark ? Icons.dark_mode : Icons.light_mode,
@@ -658,9 +591,9 @@ class SettingsScreen extends GetView<SettingsController> {
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: isDark ? Colors.black : Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(10.r),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+          color: isDark ? Colors.white : Colors.black,
           width: 1.5.w,
         ),
         boxShadow: [
@@ -699,7 +632,7 @@ class SettingsScreen extends GetView<SettingsController> {
               : isPrimary
               ? (isDark ? Colors.white : Colors.black)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(8.r),
+          borderRadius: BorderRadius.circular(5.r),
           border: !isPrimary
               ? Border.all(
             color: isDark ? Colors.white : Colors.black,
@@ -819,11 +752,11 @@ class CustomSwitch extends StatelessWidget {
           color: value
               ? (isDark ? Colors.white : Colors.black)
               : (isDark ? Colors.white : Colors.black).withOpacity(0.2),
-          borderRadius: BorderRadius.circular(14.r),
+          borderRadius: BorderRadius.circular(5.r),
           border: Border.all(
             color: value
                 ? (isDark ? Colors.white : Colors.black)
-                : (isDark ? Colors.white : Colors.black).withOpacity(0.3),
+                : (isDark ? Colors.white : Colors.black),
             width: 1.5.w,
           ),
         ),
@@ -838,7 +771,8 @@ class CustomSwitch extends StatelessWidget {
               color: value
                   ? (isDark ? Colors.black : Colors.white)
                   : (isDark ? Colors.white : Colors.black),
-              shape: BoxShape.circle,
+              shape: BoxShape.rectangle,
+              borderRadius: BorderRadius.circular(5),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.2),
@@ -847,6 +781,7 @@ class CustomSwitch extends StatelessWidget {
                 ),
               ],
             ),
+
           ),
         ),
       ),
