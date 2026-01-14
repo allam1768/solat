@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/animation.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -84,7 +85,7 @@ class QiblaController extends GetxController with GetSingleTickerProviderStateMi
     } catch (e) {
       isLoading.value = false;
       errorMessage.value = e.toString();
-      print('Error init qibla: $e');
+      debugPrint('Error initializing Qibla: $e');
     }
   }
 

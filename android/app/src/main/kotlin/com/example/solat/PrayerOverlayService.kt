@@ -41,9 +41,9 @@ class PrayerOverlayService : Service() {
             return START_NOT_STICKY
         }
 
-        val prayerName = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_PRAYER_NAME) ?: "Sholat"
+        val prayerName = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_PRAYER_NAME) ?: "Prayer"
         val message = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_MESSAGE)
-            ?: "Sudah masuk waktu sholat $prayerName"
+            ?: "It's time for $prayerName"
         val nextPrayerName = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_NAME) ?: ""
         val nextPrayerTime = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_TIME) ?: ""
         val requestCode = intent.getIntExtra(PrayerAlarmReceiver.EXTRA_REQUEST_CODE, -1)

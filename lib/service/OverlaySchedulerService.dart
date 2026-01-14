@@ -45,5 +45,5 @@ class OverlaySchedulerService {
   Future<void> handlePrayerDone(String prayerName) async {
     debugPrint(
         'OverlaySchedulerService.handlePrayerDone("$prayerName") called (native overlay mode, no-op)');
-    }
   }
+}

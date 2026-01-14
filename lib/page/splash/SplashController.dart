@@ -8,7 +8,6 @@ class SplashController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    print('SPLASH CONTROLLER ON INIT');
     _navigateToNextScreen();
   }
 
@@ -17,7 +16,6 @@ class SplashController extends GetxController {
 
     final bool onboardingCompleted = _storage.read('onboarding_completed') ??
         false;
-    print('Onboarding status: $onboardingCompleted'); // Debug print
 
     if (onboardingCompleted) {
       Get.offNamed(AppRoutes.MAIN);

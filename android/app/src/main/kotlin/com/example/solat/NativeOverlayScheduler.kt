@@ -43,7 +43,7 @@ object NativeOverlayScheduler {
                     baseTime = sunrise,
                     offsetMinutes = -30,
                     prayerName = "Subuh",
-                    message = "Waktu Subuh akan berakhir dalam 30 menit!\nAyo segera sholat Subuh.",
+                    message = "Fajr time will end in 30 minutes!\nPlease pray Fajr soon.",
                     nextPrayerName = "Dzuhur",
                     nextPrayerTime = dhuhr
                 )
@@ -55,7 +55,7 @@ object NativeOverlayScheduler {
                     baseTime = asr,
                     offsetMinutes = -30,
                     prayerName = "Dzuhur",
-                    message = "Waktu Dzuhur akan berakhir dalam 30 menit!\nAyo segera sholat Dzuhur.",
+                    message = "Dhuhr time will end in 30 minutes!\nPlease pray Dhuhr soon.",
                     nextPrayerName = "Ashar",
                     nextPrayerTime = asr
                 )
@@ -67,7 +67,7 @@ object NativeOverlayScheduler {
                     baseTime = maghrib,
                     offsetMinutes = -30,
                     prayerName = "Ashar",
-                    message = "Waktu Ashar akan berakhir dalam 30 menit!\nAyo segera sholat Ashar.",
+                    message = "Asr time will end in 30 minutes!\nPlease pray Asr soon.",
                     nextPrayerName = "Maghrib",
                     nextPrayerTime = maghrib
                 )
@@ -79,7 +79,7 @@ object NativeOverlayScheduler {
                     baseTime = isha,
                     offsetMinutes = -30,
                     prayerName = "Maghrib",
-                    message = "Waktu Maghrib akan berakhir dalam 30 menit!\nAyo segera sholat Maghrib.",
+                    message = "Maghrib time will end in 30 minutes!\nPlease pray Maghrib soon.",
                     nextPrayerName = "Isya",
                     nextPrayerTime = isha
                 )
@@ -91,7 +91,7 @@ object NativeOverlayScheduler {
                     baseTime = isha,
                     offsetMinutes = 30,
                     prayerName = "Isya",
-                    message = "Sudah 30 menit sejak masuk waktu Isya!\nAyo segera sholat Isya.",
+                    message = "It has been 30 minutes since Isha started.\nPlease pray Isha soon.",
                     nextPrayerName = "Subuh",
                     nextPrayerTime = fajr
                 )
