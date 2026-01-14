@@ -6,24 +6,24 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../service/OverlayService.dart';
 import '../../service/NotificationService.dart';
-import '../../service/PermissionHelper.dart'; // ✅ NEW
+import '../../service/PermissionHelper.dart'; // âœ… NEW
 import 'package:solat/page/home/HomeController.dart';
 
 class SettingsController extends GetxController {
   final OverlayService _overlayService = OverlayService();
   final NotificationService _notificationService = NotificationService();
-  final PermissionHelper _permissionHelper = PermissionHelper(); // ✅ NEW
+  final PermissionHelper _permissionHelper = PermissionHelper(); // âœ… NEW
   final _storage = GetStorage();
 
   var notificationEnabled = true.obs;
   var hasOverlayPermission = false.obs;
-  var hasFullScreenPermission = false.obs; // ✅ NEW
-  var hasBatteryExemption = false.obs; // ✅ NEW
+  var hasFullScreenPermission = false.obs; // âœ… NEW
+  var hasBatteryExemption = false.obs; // âœ… NEW
   var isRequestingPermission = false.obs;
   var isDarkTheme = false.obs;
   var testAttempt = 0.obs;
 
-  // ✅ OEM Info
+  // âœ… OEM Info
   var deviceManufacturer = 'Unknown'.obs;
   var isProblematicDevice = false.obs;
 
@@ -40,7 +40,7 @@ class SettingsController extends GetxController {
     isDarkTheme.value = _storage.read('isDarkTheme') ?? false;
   }
 
-  // ✅ Check all permissions
+  // âœ… Check all permissions
   Future<void> _checkAllPermissions() async {
     try {
       final permission = await _overlayService.hasOverlayPermission();
@@ -56,14 +56,14 @@ class SettingsController extends GetxController {
     }
   }
 
-  // ✅ Load device info
+  // âœ… Load device info
   Future<void> _loadDeviceInfo() async {
     final oemInfo = await _permissionHelper.getOEMInfo();
     deviceManufacturer.value = oemInfo.deviceName;
     isProblematicDevice.value = oemInfo.isProblematic;
 
     if (oemInfo.isProblematic) {
-      debugPrint('⚠️ Problematic device detected: ${oemInfo.manufacturer}');
+      debugPrint('âš ï¸ Problematic device detected: ${oemInfo.manufacturer}');
     }
   }
 
@@ -99,7 +99,7 @@ class SettingsController extends GetxController {
     showToast(value ? 'Dark theme enabled' : 'Light theme enabled');
   }
 
-  // ✅ Request all critical permissions
+  // âœ… Request all critical permissions
   Future<void> requestAllPermissions() async {
     isRequestingPermission.value = true;
 
@@ -109,16 +109,16 @@ class SettingsController extends GetxController {
       message: '''
 This app needs the following permissions to work properly:
 
-1. 📱 Display over other apps
+1. ðŸ“± Display over other apps
    - Show prayer time overlay
 
-2. 🔔 Notifications
+2. ðŸ”” Notifications
    - Alert you at prayer times
 
-3. ⏰ Exact alarms
+3. â° Exact alarms
    - Trigger reminders precisely
 
-4. 🔋 Battery optimization exemption
+4. ðŸ”‹ Battery optimization exemption
    - Ensure reminders work even when app is closed
 
 Tap Continue to grant these permissions.
@@ -142,14 +142,14 @@ Tap Continue to grant these permissions.
     isRequestingPermission.value = false;
 
     if (granted) {
-      showToast('✅ All permissions granted!');
+      showToast('âœ… All permissions granted!');
 
       // Show OEM-specific guidance if needed
       if (isProblematicDevice.value) {
         await _showOEMGuidance();
       }
     } else {
-      showToast('⚠️ Some permissions missing');
+      showToast('âš ï¸ Some permissions missing');
 
       // Show what's missing
       await Get.dialog(
@@ -177,7 +177,7 @@ Tap Continue to grant these permissions.
     }
   }
 
-  // ✅ Request overlay permission (legacy)
+  // âœ… Request overlay permission (legacy)
   Future<void> requestOverlayPermission() async {
     isRequestingPermission.value = true;
 
@@ -189,17 +189,17 @@ Tap Continue to grant these permissions.
     showToast(granted ? 'Overlay permission granted' : 'Overlay permission denied');
   }
 
-  // ✅ Request battery exemption
+  // âœ… Request battery exemption
   Future<void> requestBatteryExemption() async {
     final granted = await _permissionHelper.requestBatteryOptimizationExemption();
     hasBatteryExemption.value = granted;
 
     showToast(granted
-        ? '✅ Battery optimization disabled'
-        : '❌ Battery exemption denied');
+        ? 'âœ… Battery optimization disabled'
+        : 'âŒ Battery exemption denied');
   }
 
-  // ✅ Show OEM-specific guidance
+  // âœ… Show OEM-specific guidance
   Future<void> _showOEMGuidance() async {
     final oemInfo = await _permissionHelper.getOEMInfo();
 
@@ -210,7 +210,7 @@ Tap Continue to grant these permissions.
         title: Text('${oemInfo.manufacturer} Setup'),
         content: SingleChildScrollView(
           child: Text(
-            '⚠️ Important: ${oemInfo.manufacturer} devices require additional settings:\n\n'
+            'âš ï¸ Important: ${oemInfo.manufacturer} devices require additional settings:\n\n'
                 '${oemInfo.oemGuidance}\n\n'
                 'Without these settings, reminders may not work when the app is closed.',
           ),
@@ -232,19 +232,19 @@ Tap Continue to grant these permissions.
     );
   }
 
-  // ✅ Show permission status
+  // âœ… Show permission status
   Future<void> showPermissionStatus() async {
     final status = await _permissionHelper.checkAllPermissions();
     final oemInfo = await _permissionHelper.getOEMInfo();
 
     String statusText = 'Permission Status:\n\n';
-    statusText += 'Overlay: ${hasOverlayPermission.value ? "✓" : "×"}\n';
-    statusText += 'Notifications: ${notificationEnabled.value ? "✓" : "×"}\n';
-    statusText += 'Battery Exemption: ${hasBatteryExemption.value ? "✓" : "×"}\n';
+    statusText += 'Overlay: ${hasOverlayPermission.value ? "âœ“" : "Ã—"}\n';
+    statusText += 'Notifications: ${notificationEnabled.value ? "âœ“" : "Ã—"}\n';
+    statusText += 'Battery Exemption: ${hasBatteryExemption.value ? "âœ“" : "Ã—"}\n';
     statusText += '\nDevice: ${oemInfo.deviceName}\n';
 
     if (oemInfo.isProblematic) {
-      statusText += '\n⚠️ This device may require additional settings.';
+      statusText += '\nâš ï¸ This device may require additional settings.';
     }
 
     Get.dialog(

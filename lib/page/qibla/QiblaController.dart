@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/animation.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-class QiblaController extends GetxController {
+class QiblaController extends GetxController with GetSingleTickerProviderStateMixin {
   var rotation = 0.0.obs;
   var qiblaDirection = 0.0.obs;
   var phoneHeading = 0.0.obs;
@@ -15,6 +16,11 @@ class QiblaController extends GetxController {
 
   StreamSubscription<CompassEvent>? compassSubscription;
 
+  // ✅ ANIMATION - Untuk smooth rotation
+  late AnimationController animationController;
+  late Animation<double> rotationAnimation;
+  double targetRotation = 0.0;
+
   // Koordinat Ka'bah, Makkah
   final double makkahLat = 21.4225;
   final double makkahLng = 39.8262;
@@ -22,12 +28,31 @@ class QiblaController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+
+    // ✅ Setup animation controller (300ms duration, adjust sesuai selera)
+    animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300), // Smooth tapi responsive
+    );
+
+    // ✅ Setup tween animation
+    rotationAnimation = Tween<double>(
+      begin: 0,
+      end: 0,
+    ).animate(CurvedAnimation(
+      parent: animationController,
+      curve: Curves.easeInOut, // Smooth easing
+    ))..addListener(() {
+      rotation.value = rotationAnimation.value;
+    });
+
     initQibla();
   }
 
   @override
   void onClose() {
     compassSubscription?.cancel();
+    animationController.dispose(); // ✅ Don't forget to dispose
     super.onClose();
   }
 
@@ -130,9 +155,41 @@ class QiblaController extends GetxController {
           needleRotation += 360;
         }
 
-        rotation.value = needleRotation;
+        // ✅ SMOOTH ANIMATION - Animate dari current ke target
+        _animateToRotation(needleRotation);
       }
     });
+  }
+
+  // ✅ Helper method untuk smooth rotation
+  void _animateToRotation(double newRotation) {
+    // Cari path terpendek (clockwise atau counter-clockwise)
+    double currentRotation = rotation.value;
+    double diff = newRotation - currentRotation;
+
+    // Normalize difference to -180 to 180 (shortest path)
+    if (diff > 180) {
+      diff -= 360;
+    } else if (diff < -180) {
+      diff += 360;
+    }
+
+    targetRotation = currentRotation + diff;
+
+    // Update tween animation
+    rotationAnimation = Tween<double>(
+      begin: currentRotation,
+      end: targetRotation,
+    ).animate(CurvedAnimation(
+      parent: animationController,
+      curve: Curves.easeInOut,
+    ))..addListener(() {
+      rotation.value = rotationAnimation.value % 360;
+    });
+
+    // Start animation from 0
+    animationController.reset();
+    animationController.forward();
   }
 
   // Manual refresh
