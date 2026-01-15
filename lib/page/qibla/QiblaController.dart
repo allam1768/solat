@@ -33,7 +33,7 @@ class QiblaController extends GetxController with GetSingleTickerProviderStateMi
     // ✅ Setup animation controller (300ms duration, adjust sesuai selera)
     animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300), // Smooth tapi responsive
+      duration: const Duration(milliseconds: 200), // Smooth tapi responsive
     );
 
     // ✅ Setup tween animation

@@ -20,6 +20,8 @@ import androidx.core.app.NotificationCompat
 /**
  * ForegroundService yang menampilkan overlay full-screen via WindowManager.
  * Mendukung max 2x snooze, dengan desain berbeda untuk overlay terakhir.
+ *
+ * ✅ UPDATED: Schedule besok langsung di overlay pertama (attempt 0)
  */
 class PrayerOverlayService : Service() {
 
@@ -86,6 +88,13 @@ class PrayerOverlayService : Service() {
 
         val ctx = this
         val isLastAttempt = attemptCount >= 2
+
+        // ✅ KUNCI: Schedule besok di overlay pertama (attempt 0)
+        // Jadi apapun yang terjadi (user pencet tombol apapun, auto-snooze, crash, dll),
+        // overlay besok sudah pasti kejadwal
+        if (attemptCount == 0 && requestCode != -1) {
+            NativeOverlayScheduler.markPrayerDoneAndRescheduleTomorrow(ctx, requestCode)
+        }
 
         // Setup auto snooze untuk overlay 1 & 2 saja (2 menit = 120000 ms)
         if (!isLastAttempt) {
@@ -202,10 +211,8 @@ class PrayerOverlayService : Service() {
                 isAllCaps = false
                 stateListAnimator = null
 
+                // ✅ UPDATED: Gak perlu reschedule lagi, cukup tutup overlay
                 setOnClickListener {
-                    if (requestCode != -1) {
-                        NativeOverlayScheduler.cancelPrayer(ctx, requestCode)
-                    }
                     removeOverlay()
                     stopSelf()
                 }
@@ -241,6 +248,7 @@ class PrayerOverlayService : Service() {
                 isAllCaps = false
                 stateListAnimator = null
 
+                // ✅ UPDATED: Cukup tutup overlay
                 setOnClickListener {
                     removeOverlay()
                     stopSelf()
@@ -264,10 +272,8 @@ class PrayerOverlayService : Service() {
                 gravity = Gravity.CENTER
                 setPadding(0, 12.dp(), 0, 12.dp()) // TextButton padding approximation
 
+                // ✅ UPDATED: Cukup tutup overlay
                 setOnClickListener {
-                    if (requestCode != -1) {
-                        NativeOverlayScheduler.cancelPrayer(ctx, requestCode)
-                    }
                     removeOverlay()
                     stopSelf()
                 }
@@ -325,10 +331,8 @@ class PrayerOverlayService : Service() {
                 isAllCaps = false
                 stateListAnimator = null
 
+                // ✅ UPDATED: Gak perlu reschedule lagi, cukup tutup overlay
                 setOnClickListener {
-                    if (requestCode != -1) {
-                        NativeOverlayScheduler.cancelPrayer(ctx, requestCode)
-                    }
                     removeOverlay()
                     stopSelf()
                 }
@@ -357,6 +361,7 @@ class PrayerOverlayService : Service() {
                 isAllCaps = false
                 stateListAnimator = null
 
+                // ✅ Tetap snooze, tapi besok udah kejadwal dari attempt 0
                 setOnClickListener {
                     cancelAutoSnooze()
                     if (requestCode != -1) {
@@ -421,6 +426,7 @@ class PrayerOverlayService : Service() {
     private fun scheduleAutoSnooze(requestCode: Int, prayerName: String, attemptCount: Int) {
         autoSnoozeRunnable = Runnable {
             // Auto snooze after 2 minutes
+            // ✅ Besok udah kejadwal dari attempt 0, jadi cukup snooze aja
             if (requestCode != -1) {
                 NativeOverlayScheduler.scheduleSnooze(this, requestCode, prayerName, attemptCount + 1)
             }

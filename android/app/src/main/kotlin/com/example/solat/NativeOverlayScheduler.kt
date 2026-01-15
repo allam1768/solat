@@ -23,6 +23,15 @@ object NativeOverlayScheduler {
     private const val PREFS_NAME = "prayer_overlay_prefs"
     private const val KEY_ATTEMPT_PREFIX = "attempt_count_"
 
+    // SharedPreferences keys untuk persist jadwal overlay (agar survive reboot & bisa reschedule besok)
+    private const val KEY_SCHED_PREFIX = "schedule_"
+    private const val KEY_SCHED_HOUR_SUFFIX = "_hour"
+    private const val KEY_SCHED_MIN_SUFFIX = "_min"
+    private const val KEY_SCHED_PRAYER_SUFFIX = "_prayer"
+    private const val KEY_SCHED_MSG_SUFFIX = "_msg"
+    private const val KEY_SCHED_NEXT_NAME_SUFFIX = "_next_name"
+    private const val KEY_SCHED_NEXT_TIME_SUFFIX = "_next_time"
+
     fun schedulePrayerOverlays(context: Context, times: Map<String, String?>) {
         try {
             cancelAll(context)
@@ -135,44 +144,32 @@ object NativeOverlayScheduler {
         if (cal.timeInMillis <= System.currentTimeMillis()) {
             cal.add(Calendar.DAY_OF_YEAR, 1)
         }
-
-        val intent = Intent(context, PrayerAlarmReceiver::class.java).apply {
-            action = PrayerAlarmReceiver.ACTION_PRAYER_ALARM
-            putExtra(PrayerAlarmReceiver.EXTRA_PRAYER_NAME, prayerName)
-            putExtra(PrayerAlarmReceiver.EXTRA_MESSAGE, message)
-            putExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_NAME, nextPrayerName)
-            putExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_TIME, nextPrayerTime)
-            putExtra(PrayerAlarmReceiver.EXTRA_REQUEST_CODE, requestCode)
-            putExtra(PrayerAlarmReceiver.EXTRA_ATTEMPT_COUNT, 0)
-        }
-
-        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
-                (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            requestCode,
-            intent,
-            flags
+        scheduleOverlayAt(
+            context = context,
+            requestCode = requestCode,
+            triggerAtMillis = cal.timeInMillis,
+            prayerName = prayerName,
+            message = message,
+            nextPrayerName = nextPrayerName,
+            nextPrayerTime = nextPrayerTime,
+            attemptCount = 0,
         )
 
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        // Persist supaya:
+        // - bisa reschedule besok saat user klik "I've prayed"
+        // - bisa restore setelah reboot meskipun app tidak dibuka
+        persistSchedule(
+            context = context,
+            requestCode = requestCode,
+            hour = cal.get(Calendar.HOUR_OF_DAY),
+            minute = cal.get(Calendar.MINUTE),
+            prayerName = prayerName,
+            message = message,
+            nextPrayerName = nextPrayerName,
+            nextPrayerTime = nextPrayerTime,
+        )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                cal.timeInMillis,
-                pendingIntent
-            )
-        } else {
-            alarmManager.setExact(
-                AlarmManager.RTC_WAKEUP,
-                cal.timeInMillis,
-                pendingIntent
-            )
-        }
-
-        Log.d(TAG, "Scheduled $prayerName overlay at ${cal.time}")
+        Log.d(TAG, "Scheduled $prayerName overlay at ${cal.time} (persisted)")
     }
 
     fun scheduleSnooze(context: Context, requestCode: Int, prayerName: String, currentAttempt: Int) {
@@ -228,7 +225,7 @@ object NativeOverlayScheduler {
         Log.d(TAG, "Snooze $prayerName (attempt $currentAttempt) to ${cal.time}")
     }
 
-    fun cancelPrayer(context: Context, requestCode: Int) {
+    fun cancelPrayer(context: Context, requestCode: Int, clearPersisted: Boolean = true) {
         val intent = Intent(context, PrayerAlarmReceiver::class.java).apply {
             action = PrayerAlarmReceiver.ACTION_PRAYER_ALARM
         }
@@ -249,15 +246,19 @@ object NativeOverlayScheduler {
         // Reset attempt count
         resetAttemptCount(context, requestCode)
 
+        if (clearPersisted) {
+            clearPersistedSchedule(context, requestCode)
+        }
+
         Log.d(TAG, "Cancelled prayer alarm rc=$requestCode")
     }
 
     fun cancelAll(context: Context) {
-        cancelPrayer(context, REQ_SUBUH)
-        cancelPrayer(context, REQ_DZUHUR)
-        cancelPrayer(context, REQ_ASHAR)
-        cancelPrayer(context, REQ_MAGHRIB)
-        cancelPrayer(context, REQ_ISYA)
+        cancelPrayer(context, REQ_SUBUH, clearPersisted = true)
+        cancelPrayer(context, REQ_DZUHUR, clearPersisted = true)
+        cancelPrayer(context, REQ_ASHAR, clearPersisted = true)
+        cancelPrayer(context, REQ_MAGHRIB, clearPersisted = true)
+        cancelPrayer(context, REQ_ISYA, clearPersisted = true)
     }
 
     // Helper functions untuk attempt count
@@ -279,5 +280,183 @@ object NativeOverlayScheduler {
     private fun resetAllAttemptCounts(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().clear().apply()
+    }
+
+    /**
+     * Dipanggil saat user klik "I've prayed" -> jadwalkan overlay yang sama untuk BESOK di jam yang sama.
+     * (Tanggal/bulan/tahun maju +1 hari, jam/menit tetap)
+     */
+    fun markPrayerDoneAndRescheduleTomorrow(context: Context, requestCode: Int) {
+        // Batalkan alarm yang sedang aktif, tapi JANGAN hapus jadwal tersimpan.
+        cancelPrayer(context, requestCode, clearPersisted = false)
+        rescheduleTomorrowFromPersisted(context, requestCode)
+    }
+
+    /**
+     * Restore semua jadwal overlay dari SharedPreferences (mis. setelah reboot).
+     */
+    fun restoreAllSchedulesAfterBoot(context: Context) {
+        val requestCodes = listOf(REQ_SUBUH, REQ_DZUHUR, REQ_ASHAR, REQ_MAGHRIB, REQ_ISYA)
+        requestCodes.forEach { rc ->
+            restoreAndRescheduleSingle(context, rc)
+        }
+    }
+
+    private fun restoreAndRescheduleSingle(context: Context, requestCode: Int) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val hourKey = "$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_HOUR_SUFFIX"
+        val minKey = "$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MIN_SUFFIX"
+        if (!prefs.contains(hourKey) || !prefs.contains(minKey)) return
+
+        val hour = prefs.getInt(hourKey, -1)
+        val minute = prefs.getInt(minKey, -1)
+        if (hour !in 0..23 || minute !in 0..59) return
+
+        val prayerName = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_PRAYER_SUFFIX", "Prayer") ?: "Prayer"
+        val message = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX", "It's time") ?: "It's time"
+        val nextPrayerName = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_NAME_SUFFIX", "") ?: ""
+        val nextPrayerTime = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_TIME_SUFFIX", "") ?: ""
+
+        // Schedule untuk waktu terdekat: hari ini jam:menit, kalau sudah lewat -> besok
+        val now = System.currentTimeMillis()
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = now
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            if (timeInMillis <= now) add(Calendar.DAY_OF_YEAR, 1)
+        }
+
+        scheduleOverlayAt(
+            context = context,
+            requestCode = requestCode,
+            triggerAtMillis = cal.timeInMillis,
+            prayerName = prayerName,
+            message = message,
+            nextPrayerName = nextPrayerName,
+            nextPrayerTime = nextPrayerTime,
+            attemptCount = 0,
+        )
+
+        Log.d(TAG, "Restored overlay rc=$requestCode at ${cal.time}")
+    }
+
+    private fun rescheduleTomorrowFromPersisted(context: Context, requestCode: Int) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val hour = prefs.getInt("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_HOUR_SUFFIX", -1)
+        val minute = prefs.getInt("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MIN_SUFFIX", -1)
+        if (hour !in 0..23 || minute !in 0..59) {
+            Log.w(TAG, "No persisted schedule for rc=$requestCode; cannot reschedule tomorrow")
+            return
+        }
+
+        val prayerName = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_PRAYER_SUFFIX", "Prayer") ?: "Prayer"
+        val message = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX", "It's time") ?: "It's time"
+        val nextPrayerName = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_NAME_SUFFIX", "") ?: ""
+        val nextPrayerTime = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_TIME_SUFFIX", "") ?: ""
+
+        val now = System.currentTimeMillis()
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = now
+            add(Calendar.DAY_OF_YEAR, 1)
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        scheduleOverlayAt(
+            context = context,
+            requestCode = requestCode,
+            triggerAtMillis = cal.timeInMillis,
+            prayerName = prayerName,
+            message = message,
+            nextPrayerName = nextPrayerName,
+            nextPrayerTime = nextPrayerTime,
+            attemptCount = 0,
+        )
+
+        Log.d(TAG, "Rescheduled tomorrow rc=$requestCode at ${cal.time}")
+    }
+
+    private fun scheduleOverlayAt(
+        context: Context,
+        requestCode: Int,
+        triggerAtMillis: Long,
+        prayerName: String,
+        message: String,
+        nextPrayerName: String,
+        nextPrayerTime: String,
+        attemptCount: Int,
+    ) {
+        val intent = Intent(context, PrayerAlarmReceiver::class.java).apply {
+            action = PrayerAlarmReceiver.ACTION_PRAYER_ALARM
+            putExtra(PrayerAlarmReceiver.EXTRA_PRAYER_NAME, prayerName)
+            putExtra(PrayerAlarmReceiver.EXTRA_MESSAGE, message)
+            putExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_NAME, nextPrayerName)
+            putExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_TIME, nextPrayerTime)
+            putExtra(PrayerAlarmReceiver.EXTRA_REQUEST_CODE, requestCode)
+            putExtra(PrayerAlarmReceiver.EXTRA_ATTEMPT_COUNT, attemptCount)
+        }
+
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+                (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            intent,
+            flags
+        )
+
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                triggerAtMillis,
+                pendingIntent
+            )
+        } else {
+            alarmManager.setExact(
+                AlarmManager.RTC_WAKEUP,
+                triggerAtMillis,
+                pendingIntent
+            )
+        }
+    }
+
+    private fun persistSchedule(
+        context: Context,
+        requestCode: Int,
+        hour: Int,
+        minute: Int,
+        prayerName: String,
+        message: String,
+        nextPrayerName: String,
+        nextPrayerTime: String,
+    ) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putInt("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_HOUR_SUFFIX", hour)
+            .putInt("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MIN_SUFFIX", minute)
+            .putString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_PRAYER_SUFFIX", prayerName)
+            .putString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX", message)
+            .putString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_NAME_SUFFIX", nextPrayerName)
+            .putString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_TIME_SUFFIX", nextPrayerTime)
+            .apply()
+    }
+
+    private fun clearPersistedSchedule(context: Context, requestCode: Int) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .remove("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_HOUR_SUFFIX")
+            .remove("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MIN_SUFFIX")
+            .remove("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_PRAYER_SUFFIX")
+            .remove("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX")
+            .remove("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_NAME_SUFFIX")
+            .remove("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_TIME_SUFFIX")
+            .apply()
     }
 }
