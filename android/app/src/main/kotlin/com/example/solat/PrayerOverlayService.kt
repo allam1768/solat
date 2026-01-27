@@ -10,6 +10,8 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Build
 import android.os.IBinder
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.Button
@@ -85,6 +87,9 @@ class PrayerOverlayService : Service() {
     ) {
         removeOverlay()
         cancelAutoSnooze()
+
+        // ✅ Tambahkan getaran ringan saat overlay muncul
+        vibratePhone()
 
         val ctx = this
         val isLastAttempt = attemptCount >= 2
@@ -479,6 +484,27 @@ class PrayerOverlayService : Service() {
                     setSound(null, null)
                 }
                 nm.createNotificationChannel(channel)
+            }
+        }
+    }
+
+    /**
+     * Fungsi untuk memberikan getaran ringan saat overlay muncul
+     */
+    private fun vibratePhone() {
+        val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        vibrator?.let {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // Android 8.0+ menggunakan VibrationEffect
+                // Pola: getaran 500ms, pause 100ms, getaran 300ms (total ~900ms)
+                val pattern = longArrayOf(0, 500, 100, 300)
+                val effect = VibrationEffect.createWaveform(pattern, -1) // -1 = tidak repeat
+                it.vibrate(effect)
+            } else {
+                // Android versi lama
+                @Suppress("DEPRECATION")
+                val pattern = longArrayOf(0, 500, 100, 300)
+                it.vibrate(pattern, -1)
             }
         }
     }
