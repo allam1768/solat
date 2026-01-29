@@ -293,6 +293,16 @@ object NativeOverlayScheduler {
     }
 
     /**
+     * ✅ FUNGSI BARU: Schedule besok TANPA cancel alarm hari ini
+     * Digunakan di overlay pertama untuk memastikan besok pasti ada alarm,
+     * tapi tetap mempertahankan alarm hari ini agar bisa snooze 3x
+     */
+    fun scheduleTomorrowWithoutCancellingToday(context: Context, requestCode: Int) {
+        // TIDAK memanggil cancelPrayer(), langsung schedule besok saja
+        rescheduleTomorrowFromPersisted(context, requestCode)
+    }
+
+    /**
      * Restore semua jadwal overlay dari SharedPreferences (mis. setelah reboot).
      */
     fun restoreAllSchedulesAfterBoot(context: Context) {
