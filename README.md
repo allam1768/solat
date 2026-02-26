@@ -2,7 +2,7 @@
   <!-- Ganti URL denga path icon atau logo aplikasi Anda jika ada -->
   <img src="assets/icons/logo.svg" alt="Solat App Icon" width="120">
 
-# Solat App 🕌
+# Solat App 
 
 **Aplikasi pengingat dan jadwal sholat akurat berdasarkan lokasi pengguna secara real-time.**
 
