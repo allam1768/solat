@@ -40,13 +40,13 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   bool _hasShownDialog = false;
 
   Rx<Map<String, String>?> get prayerTimes => Rx<Map<String, String>?>({
-    'Fajr': fajrTime.value,
-    'Sunrise': sunriseTime.value,
-    'Dhuhr': dhuhrTime.value,
-    'Asr': asrTime.value,
-    'Maghrib': maghribTime.value,
-    'Isha': ishaTime.value,
-  });
+        'Fajr': fajrTime.value,
+        'Sunrise': sunriseTime.value,
+        'Dhuhr': dhuhrTime.value,
+        'Asr': asrTime.value,
+        'Maghrib': maghribTime.value,
+        'Isha': ishaTime.value,
+      });
 
   @override
   void onInit() {
@@ -129,11 +129,11 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
-        cityName.value = place.subAdministrativeArea ??
-            place.locality ??
-            'City not found';
+        cityName.value =
+            place.subAdministrativeArea ?? place.locality ?? 'City not found';
         provinceName.value = place.administrativeArea ?? '';
-        debugPrint('📍 Location found: ${cityName.value}, ${provinceName.value}');
+        debugPrint(
+            '📍 Location found: ${cityName.value}, ${provinceName.value}');
       } else {
         cityName.value = 'Location not found';
         provinceName.value = '';
@@ -241,7 +241,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
             onPressed: () async {
               Get.back();
               _hasShownDialog = false;
-              LocationPermission permission = await Geolocator.requestPermission();
+              LocationPermission permission =
+                  await Geolocator.requestPermission();
               if (permission == LocationPermission.whileInUse ||
                   permission == LocationPermission.always) {
                 await refreshLocation();
@@ -297,9 +298,9 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     try {
       isLoadingPrayer.value = true;
 
-      int timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      String formattedDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
 
-      String url = 'https://api.aladhan.com/v1/timings/$timestamp'
+      String url = 'https://api.aladhan.com/v1/timings/$formattedDate'
           '?latitude=$latitude'
           '&longitude=$longitude'
           '&method=3';
