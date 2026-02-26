@@ -1,6 +1,6 @@
 <div align="center">
   <!-- Ganti URL denga path icon atau logo aplikasi Anda jika ada -->
-  <img src="https://img.icons8.com/color/150/000000/mosque.png" alt="Solat App Icon" width="120">
+  <img src="assets/icons/logo.svg" alt="Solat App Icon" width="120">
 
 # Solat App 🕌
 
@@ -21,18 +21,16 @@
 - 🔔 **Notifikasi & Overlay Widget**: Pengingat cerdas (Native Alarm & Push Notification) ketika masuknya waktu sholat.
 - ⚡ **Cepat & Ringan**: Dibangun menggunakan _State Management_ **GetX** untuk perpindahan status antarmuka yang _seamless_ tanpa kendala _lag_.
 
-## � Unduh Aplikasi (APK)
+## Unduh Aplikasi (APK)
 
 Anda dapat memuat dan menginstal aplikasi langsung ke perangkat Android Anda melalui _link_ Google Drive berikut:
 👉 **[Download Solat App (APK)](https://drive.google.com/drive/folders/1kKgQwffShvFP57T50BWBlV82uJ5u4aR5?usp=drive_link)**
 
-## �📸 Tampilan Aplikasi
+## 📸 Tampilan Aplikasi
 
-_(Anda nanti bisa mengubah link gambar di bawah ini dengan screenshot aplikasi asli dari folder/repository GitHub)_
-
-|                                   Beranda Waktu                                   |                                  Informasi Jadwal                                  |
-| :-------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------: |
-| <img src="https://via.placeholder.com/300x550.png?text=Homepage+App" width="220"> | <img src="https://via.placeholder.com/300x550.png?text=Jadwal+Sholat" width="220"> |
+|                            Beranda Waktu                             |                           Informasi Jadwal                           |
+| :------------------------------------------------------------------: | :------------------------------------------------------------------: |
+| <img src="assets/images/Screenshot_20260226-205526.png" width="220"> | <img src="assets/images/Screenshot_20260226-205534.png" width="220"> |
 
 ## 🛠️ Teknologi & Library
 
