@@ -34,7 +34,8 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             ACTION_DONE -> {
                 val requestCode = intent.getIntExtra(EXTRA_REQUEST_CODE, -1)
                 if (requestCode != -1) {
-                    NativeOverlayScheduler.cancelPrayer(context, requestCode)
+                    // User menandai "sudah sholat" -> reschedule untuk besok di jam yang sama
+                    NativeOverlayScheduler.markPrayerDoneAndRescheduleTomorrow(context, requestCode)
                 }
             }
         }

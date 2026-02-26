@@ -40,7 +40,7 @@ class SunriseItem extends GetView<HomeController> {
           ),
 
           Text(
-            'Terbit',
+            'Sunrise',
             style: theme.textTheme.bodyMedium?.copyWith(
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,

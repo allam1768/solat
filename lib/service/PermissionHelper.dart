@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 
@@ -44,28 +44,28 @@ class PermissionHelper {
   }
 
   // Check all critical permissions
-  Future<PermissionStatus> checkAllPermissions() async {
+  Future<ph.PermissionStatus> checkAllPermissions() async {
     final results = {
-      'notification': await Permission.notification.status,
-      'overlay': await Permission.systemAlertWindow.status,
-      'scheduleExactAlarm': await Permission.scheduleExactAlarm.status,
-      'ignoreBatteryOptimizations': await Permission.ignoreBatteryOptimizations.status,
+      'notification': await ph.Permission.notification.status,
+      'overlay': await ph.Permission.systemAlertWindow.status,
+      'scheduleExactAlarm': await ph.Permission.scheduleExactAlarm.status,
+      'ignoreBatteryOptimizations': await ph.Permission.ignoreBatteryOptimizations.status,
     };
 
     if (!results['notification']!.isGranted ||
         !results['overlay']!.isGranted ||
         !results['scheduleExactAlarm']!.isGranted) {
-      return PermissionStatus.denied;
+      return ph.PermissionStatus.denied;
     }
 
-    return PermissionStatus.granted;
+    return ph.PermissionStatus.granted;
   }
 
   // Request all necessary permissions
   Future<bool> requestAllPermissions() async {
-    var notificationStatus = await Permission.notification.request();
-    var overlayStatus = await Permission.systemAlertWindow.request();
-    var alarmStatus = await Permission.scheduleExactAlarm.request();
+    var notificationStatus = await ph.Permission.notification.request();
+    var overlayStatus = await ph.Permission.systemAlertWindow.request();
+    var alarmStatus = await ph.Permission.scheduleExactAlarm.request();
 
     final allGranted = notificationStatus.isGranted &&
         overlayStatus.isGranted &&
@@ -77,13 +77,13 @@ class PermissionHelper {
   // Request battery optimization exemption
   Future<bool> requestBatteryOptimizationExemption() async {
     try {
-      final status = await Permission.ignoreBatteryOptimizations.status;
+      final status = await ph.Permission.ignoreBatteryOptimizations.status;
 
       if (status.isGranted) {
         return true;
       }
 
-      final result = await Permission.ignoreBatteryOptimizations.request();
+      final result = await ph.Permission.ignoreBatteryOptimizations.request();
       return result.isGranted;
     } catch (e) {
       debugPrint('Error requesting battery exemption: $e');
@@ -128,7 +128,7 @@ class PermissionHelper {
 
   // Open app settings
   Future<void> openAppSettings() async {
-    await openAppSettings();
+    await ph.openAppSettings();
   }
 }
 

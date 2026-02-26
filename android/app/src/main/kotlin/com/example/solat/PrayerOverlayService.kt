@@ -10,6 +10,8 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Build
 import android.os.IBinder
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.Button
@@ -19,7 +21,18 @@ import androidx.core.app.NotificationCompat
 
 /**
  * ForegroundService yang menampilkan overlay full-screen via WindowManager.
- * Mendukung max 2x snooze, dengan desain berbeda untuk overlay terakhir.
+ * Mendukung max 2x snooze (total 3 overlay), dengan desain berbeda untuk overlay terakhir.
+ *
+ * Flow:
+ * - Overlay 1 (attempt 0):
+ *   ✅ AUTO-SCHEDULE BESOK (tanpa cancel alarm hari ini!)
+ *   → Auto-snooze 2 menit jika tidak ada interaksi
+ * - Overlay 2 (attempt 1): Auto-snooze 2 menit jika tidak ada interaksi
+ * - Overlay 3 (attempt 2): Tidak ada auto-snooze, harus dipilih manual
+ *
+ * PASTI-PASTI:
+ * - Overlay PASTI muncul 3x (karena alarm hari ini tidak di-cancel)
+ * - Besok PASTI ada alarm (karena auto-schedule di overlay 1)
  */
 class PrayerOverlayService : Service() {
 
@@ -41,9 +54,9 @@ class PrayerOverlayService : Service() {
             return START_NOT_STICKY
         }
 
-        val prayerName = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_PRAYER_NAME) ?: "Sholat"
+        val prayerName = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_PRAYER_NAME) ?: "Prayer"
         val message = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_MESSAGE)
-            ?: "Sudah masuk waktu sholat $prayerName"
+            ?: "It's time for $prayerName"
         val nextPrayerName = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_NAME) ?: ""
         val nextPrayerTime = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_TIME) ?: ""
         val requestCode = intent.getIntExtra(PrayerAlarmReceiver.EXTRA_REQUEST_CODE, -1)
@@ -84,8 +97,17 @@ class PrayerOverlayService : Service() {
         removeOverlay()
         cancelAutoSnooze()
 
+        // ✅ Tambahkan getaran ringan saat overlay muncul
+        vibratePhone(attemptCount)
+
         val ctx = this
         val isLastAttempt = attemptCount >= 2
+
+        // ✅ SOLUSI FINAL: Auto-schedule besok di overlay PERTAMA (attempt 0)
+        // TANPA cancel alarm hari ini, jadi overlay tetap bisa muncul 3x
+        if (attemptCount == 0 && requestCode != -1) {
+            NativeOverlayScheduler.scheduleTomorrowWithoutCancellingToday(ctx, requestCode)
+        }
 
         // Setup auto snooze untuk overlay 1 & 2 saja (2 menit = 120000 ms)
         if (!isLastAttempt) {
@@ -202,10 +224,8 @@ class PrayerOverlayService : Service() {
                 isAllCaps = false
                 stateListAnimator = null
 
+                // ✅ Besok sudah auto-dijadwalkan saat overlay muncul, cukup tutup
                 setOnClickListener {
-                    if (requestCode != -1) {
-                        NativeOverlayScheduler.cancelPrayer(ctx, requestCode)
-                    }
                     removeOverlay()
                     stopSelf()
                 }
@@ -241,6 +261,7 @@ class PrayerOverlayService : Service() {
                 isAllCaps = false
                 stateListAnimator = null
 
+                // ✅ UPDATED: Cukup tutup overlay
                 setOnClickListener {
                     removeOverlay()
                     stopSelf()
@@ -264,10 +285,8 @@ class PrayerOverlayService : Service() {
                 gravity = Gravity.CENTER
                 setPadding(0, 12.dp(), 0, 12.dp()) // TextButton padding approximation
 
+                // ✅ UPDATED: Cukup tutup overlay
                 setOnClickListener {
-                    if (requestCode != -1) {
-                        NativeOverlayScheduler.cancelPrayer(ctx, requestCode)
-                    }
                     removeOverlay()
                     stopSelf()
                 }
@@ -325,10 +344,8 @@ class PrayerOverlayService : Service() {
                 isAllCaps = false
                 stateListAnimator = null
 
+                // ✅ Besok akan auto-dijadwalkan di overlay terakhir, cukup tutup
                 setOnClickListener {
-                    if (requestCode != -1) {
-                        NativeOverlayScheduler.cancelPrayer(ctx, requestCode)
-                    }
                     removeOverlay()
                     stopSelf()
                 }
@@ -357,6 +374,7 @@ class PrayerOverlayService : Service() {
                 isAllCaps = false
                 stateListAnimator = null
 
+                // ✅ Snooze saja tanpa schedule besok (besok akan dijadwalkan saat user klik "I've prayed")
                 setOnClickListener {
                     cancelAutoSnooze()
                     if (requestCode != -1) {
@@ -420,7 +438,8 @@ class PrayerOverlayService : Service() {
 
     private fun scheduleAutoSnooze(requestCode: Int, prayerName: String, attemptCount: Int) {
         autoSnoozeRunnable = Runnable {
-            // Auto snooze after 2 minutes
+            // Auto snooze setelah 2 menit
+            // Besok akan dijadwalkan saat user klik "I've prayed"
             if (requestCode != -1) {
                 NativeOverlayScheduler.scheduleSnooze(this, requestCode, prayerName, attemptCount + 1)
             }
@@ -473,6 +492,28 @@ class PrayerOverlayService : Service() {
                     setSound(null, null)
                 }
                 nm.createNotificationChannel(channel)
+            }
+        }
+    }
+
+    /**
+     * Fungsi untuk memberikan getaran ringan saat overlay muncul
+     */
+    private fun vibratePhone(attemptCount: Int) {
+        val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        vibrator?.let {
+            val pattern = when (attemptCount) {
+                0 -> longArrayOf(0, 300, 100, 300)           // Overlay 1: ringan
+                1 -> longArrayOf(0, 500, 150, 500)           // Overlay 2: sedang
+                else -> longArrayOf(0, 800, 200, 800, 200, 800) // Overlay 3: kuat (3x)
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val effect = VibrationEffect.createWaveform(pattern, -1)
+                it.vibrate(effect)
+            } else {
+                @Suppress("DEPRECATION")
+                it.vibrate(pattern, -1)
             }
         }
     }

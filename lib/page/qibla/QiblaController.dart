@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/animation.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -22,8 +23,8 @@ class QiblaController extends GetxController with GetSingleTickerProviderStateMi
   double targetRotation = 0.0;
 
   // Koordinat Ka'bah, Makkah
-  final double makkahLat = 21.4225;
-  final double makkahLng = 39.8262;
+  final double makkahLat = 21.4224779;
+  final double makkahLng = 39.8251832;
 
   @override
   void onInit() {
@@ -32,7 +33,7 @@ class QiblaController extends GetxController with GetSingleTickerProviderStateMi
     // ✅ Setup animation controller (300ms duration, adjust sesuai selera)
     animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300), // Smooth tapi responsive
+      duration: const Duration(milliseconds: 100), // Smooth tapi responsive
     );
 
     // ✅ Setup tween animation
@@ -84,7 +85,7 @@ class QiblaController extends GetxController with GetSingleTickerProviderStateMi
     } catch (e) {
       isLoading.value = false;
       errorMessage.value = e.toString();
-      print('Error init qibla: $e');
+      debugPrint('Error initializing Qibla: $e');
     }
   }
 

@@ -9,7 +9,7 @@ class NotificationService {
 
   final _storage = GetStorage();
 
-  // Storage key untuk notification enable/disable
+  // Storage key for notification enable/disable
   static const String notificationEnabledKey = 'notification_enabled';
 
   static const int fajrNotificationId = 1;
@@ -19,8 +19,8 @@ class NotificationService {
   static const int ishaNotificationId = 5;
 
   static const String prayerChannelKey = 'prayer_times_channel';
-  static const String prayerChannelName = 'Waktu Sholat';
-  static const String prayerChannelDescription = 'Notifikasi untuk waktu sholat';
+  static const String prayerChannelName = 'Prayer Times';
+  static const String prayerChannelDescription = 'Notifications for daily prayer times';
 
   // Check if notification is enabled
   bool isNotificationEnabled() {
@@ -30,7 +30,7 @@ class NotificationService {
   // Set notification enabled/disabled
   Future<void> setNotificationEnabled(bool enabled) async {
     if (enabled) {
-      // Request permission ketika enable
+      // Request permission when enabling
       final granted = await requestPermissions();
       if (granted) {
         await _storage.write(notificationEnabledKey, true);
@@ -40,7 +40,7 @@ class NotificationService {
     }
   }
 
-  // ✅ Initialize TANPA auto-request permission
+  // ✅ Initialize WITHOUT auto-requesting permission
   Future<void> initialize() async {
     try {
       await AwesomeNotifications().initialize(
@@ -50,9 +50,10 @@ class NotificationService {
             channelKey: prayerChannelKey,
             channelName: prayerChannelName,
             channelDescription: prayerChannelDescription,
-            importance: NotificationImportance.Default,
+            importance: NotificationImportance.Max, // ✅ HARUS Max untuk heads-up
             channelShowBadge: true,
-            playSound: false,
+            playSound: true,
+            defaultRingtoneType: DefaultRingtoneType.Notification,
             enableVibration: true,
             enableLights: false,
             criticalAlerts: false,
@@ -61,8 +62,7 @@ class NotificationService {
         debug: true,
       );
 
-      // ❌ HAPUS: await requestPermissions();
-      // Permission akan direquest di Onboarding
+      // Permission is requested in Onboarding
 
       debugPrint('✅ NotificationService initialized (without permission request)');
     } catch (e) {
@@ -70,7 +70,7 @@ class NotificationService {
     }
   }
 
-  // ✅ Method terpisah untuk request permission (dipanggil di Onboarding)
+  // ✅ Separate method to request permission (called from Onboarding)
   Future<bool> requestPermissions() async {
     try {
       bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
@@ -100,51 +100,51 @@ class NotificationService {
     required String ishaTime,
   }) async {
     try {
-      // Cek apakah notifikasi diaktifkan
+      // Check if notifications are enabled
       if (!isNotificationEnabled()) {
         await cancelAllNotifications();
         return;
       }
 
-      // Cancel semua notifikasi sebelumnya
+      // Cancel previous notifications
       await cancelAllNotifications();
 
-      // Delay sebentar untuk memastikan cancel selesai
+      // Small delay to ensure cancellations complete
       await Future.delayed(const Duration(milliseconds: 300));
 
-      // Schedule setiap waktu sholat
+      // Schedule each prayer time
       await _schedulePrayerNotification(
         id: fajrNotificationId,
-        title: '🕌 Waktu Subuh',
-        body: 'Sudah masuk waktu sholat Subuh. Ayo segera sholat!',
+        title: '🕌 Fajr Time',
+        body: 'It\'s time for Fajr prayer.',
         time: fajrTime,
       );
 
       await _schedulePrayerNotification(
         id: dhuhrNotificationId,
-        title: '🕌 Waktu Dzuhur',
-        body: 'Sudah masuk waktu sholat Dzuhur. Ayo segera sholat!',
+        title: '🕌 Dhuhr Time',
+        body: 'It\'s time for Dhuhr prayer.',
         time: dhuhrTime,
       );
 
       await _schedulePrayerNotification(
         id: asrNotificationId,
-        title: '🕌 Waktu Ashar',
-        body: 'Sudah masuk waktu sholat Ashar. Ayo segera sholat!',
+        title: '🕌 Asr Time',
+        body: 'It\'s time for Asr prayer.',
         time: asrTime,
       );
 
       await _schedulePrayerNotification(
         id: maghribNotificationId,
-        title: '🕌 Waktu Maghrib',
-        body: 'Sudah masuk waktu sholat Maghrib. Ayo segera sholat!',
+        title: '🕌 Maghrib Time',
+        body: 'It\'s time for Maghrib prayer.',
         time: maghribTime,
       );
 
       await _schedulePrayerNotification(
         id: ishaNotificationId,
-        title: '🕌 Waktu Isya',
-        body: 'Sudah masuk waktu sholat Isya. Ayo segera sholat!',
+        title: '🕌 Isha Time',
+        body: 'It\'s time for Isha prayer.',
         time: ishaTime,
       );
 
@@ -164,7 +164,7 @@ class NotificationService {
     try {
       final timeParts = time.split(':');
       if (timeParts.length != 2) {
-        debugPrint('❌ Format waktu tidak valid: $time');
+        debugPrint('❌ Invalid time format: $time');
         return;
       }
 
@@ -186,20 +186,20 @@ class NotificationService {
           body: body,
           category: NotificationCategory.Reminder,
           notificationLayout: NotificationLayout.Default,
-          wakeUpScreen: true,
-          fullScreenIntent: true,
-          criticalAlert: true,
-          autoDismissible: false,
+          wakeUpScreen: false,
+          fullScreenIntent: false,
+          criticalAlert: false,
+          autoDismissible: true,
           displayOnForeground: true,
           displayOnBackground: true,
-          locked: true,
+          locked: false,
           color: const Color(0xFF009688),
           backgroundColor: Colors.white,
         ),
         actionButtons: [
           NotificationActionButton(
             key: 'DISMISS',
-            label: 'Tutup',
+            label: 'Dismiss',
             autoDismissible: true,
           ),
         ],
@@ -244,11 +244,11 @@ class NotificationService {
       final scheduledNotifications = await AwesomeNotifications().listScheduledNotifications();
 
       if (scheduledNotifications.isEmpty) {
-        debugPrint('⚠️ TIDAK ADA NOTIFIKASI TERJADWAL!');
+        debugPrint('⚠️ No scheduled notifications found.');
         return;
       }
 
-      debugPrint('📋 Total notifikasi terjadwal: ${scheduledNotifications.length}');
+      debugPrint('📋 Total scheduled notifications: ${scheduledNotifications.length}');
     } catch (e) {
       debugPrint('❌ Error checking pending notifications: $e');
     }
@@ -265,7 +265,7 @@ class NotificationService {
           channelKey: prayerChannelKey,
           title: title,
           body: body,
-          category: NotificationCategory.Message,
+          category: NotificationCategory.Reminder,
           notificationLayout: NotificationLayout.Default,
           displayOnForeground: true,
           displayOnBackground: true,
