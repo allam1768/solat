@@ -40,8 +40,10 @@ You can download and install the Android application directly from the Google Dr
 
 ## 📸 App Screenshots
 
-<img src="assets/images/Screenshot_20260226-205526.png" width="220">
-<img src="assets/images/Screenshot_20260226-205534.png" width="220">
+<p align="center">
+  <img src="assets/images/Screenshot_20260226-205526.png" width="220">
+  <img src="assets/images/Screenshot_20260226-205534.png" width="220">
+</p>
 
 ---
 
