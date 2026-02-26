@@ -27,8 +27,6 @@ Anda dapat memuat dan menginstal aplikasi langsung ke perangkat Android Anda mel
 👉 **[Download Solat App (APK)](https://drive.google.com/drive/folders/1kKgQwffShvFP57T50BWBlV82uJ5u4aR5?usp=drive_link)**
 
 ## 📸 Tampilan Aplikasi
-
-|                            Beranda Waktu                             |                           Informasi Jadwal                           |
 | :------------------------------------------------------------------: | :------------------------------------------------------------------: |
 | <img src="assets/images/Screenshot_20260226-205526.png" width="220"> | <img src="assets/images/Screenshot_20260226-205534.png" width="220"> |
 
