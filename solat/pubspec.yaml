@@ -25,6 +25,7 @@ dependencies:
   flutter_compass: ^0.8.0
   fluttertoast: ^8.2.1
   vibration: ^3.1.5
+  device_info_plus: ^13.0.0
 
 dev_dependencies:
   flutter_test:
