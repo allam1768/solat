@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import '../HomeController.dart';
+import '../home_controller.dart';
 
 class PrayerItem extends GetView<HomeController> {
   final String iconPath;
   final String name;
+  final String prayerKey;
   final String time;
 
   const PrayerItem({
     super.key,
     required this.iconPath,
     required this.name,
+    required this.prayerKey,
     required this.time,
   });
 
@@ -22,7 +24,7 @@ class PrayerItem extends GetView<HomeController> {
     final colorScheme = theme.colorScheme;
 
     return Obx(() {
-      final isActive = controller.currentPrayerName.value == name;
+      final isActive = controller.currentPrayerKey.value == prayerKey;
 
       return AnimatedContainer(
         duration: const Duration(milliseconds: 300),
@@ -31,9 +33,9 @@ class PrayerItem extends GetView<HomeController> {
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
         decoration: BoxDecoration(
           color: isActive
-              ? colorScheme.onSurface.withOpacity(0.15)
+              ? colorScheme.onSurface.withValues(alpha: 0.15)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(15.r),
           border: Border.all(
             color: isActive ? colorScheme.onSurface : Colors.transparent,
             width: 2.w,
@@ -58,9 +60,7 @@ class PrayerItem extends GetView<HomeController> {
               style: theme.textTheme.bodyLarge?.copyWith(
                 fontSize: isActive ? 18.sp : 16.sp,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                color: isActive
-                    ? colorScheme.onSurface
-                    : colorScheme.onSurface,
+                color: isActive ? colorScheme.onSurface : colorScheme.onSurface,
               ),
             ),
             Text(
@@ -68,9 +68,7 @@ class PrayerItem extends GetView<HomeController> {
               style: theme.textTheme.bodyLarge?.copyWith(
                 fontSize: isActive ? 18.sp : 16.sp,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                color: isActive
-                    ? colorScheme.onSurface
-                    : colorScheme.onSurface,
+                color: isActive ? colorScheme.onSurface : colorScheme.onSurface,
               ),
             ),
           ],

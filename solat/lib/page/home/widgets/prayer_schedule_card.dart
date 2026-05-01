@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import '../HomeController.dart';
+import '../home_controller.dart';
 import 'prayer_item.dart';
 import 'sunrise_item.dart';
 
@@ -27,7 +27,7 @@ class PrayerScheduleCard extends GetView<HomeController> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            'Prayer Schedule',
+            'next_prayer'.tr,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w600,
               fontSize: 24.sp,
@@ -38,7 +38,8 @@ class PrayerScheduleCard extends GetView<HomeController> {
 
           Obx(() => PrayerItem(
             iconPath: 'subuh.svg',
-            name: 'Fajr',
+            name: 'fajr'.tr,
+            prayerKey: 'fajr',
             time: controller.fajrTime.value,
           )),
           SizedBox(height: 12.h),
@@ -48,28 +49,32 @@ class PrayerScheduleCard extends GetView<HomeController> {
 
           Obx(() => PrayerItem(
             iconPath: 'zuhur.svg',
-            name: 'Dhuhr',
+            name: 'dhuhr'.tr,
+            prayerKey: 'dhuhr',
             time: controller.dhuhrTime.value,
           )),
           SizedBox(height: 24.h),
 
           Obx(() => PrayerItem(
             iconPath: 'ashar.svg',
-            name: 'Asr',
+            name: 'asr'.tr,
+            prayerKey: 'asr',
             time: controller.asrTime.value,
           )),
           SizedBox(height: 24.h),
 
           Obx(() => PrayerItem(
             iconPath: 'magrib.svg',
-            name: 'Maghrib',
+            name: 'maghrib'.tr,
+            prayerKey: 'maghrib',
             time: controller.maghribTime.value,
           )),
           SizedBox(height: 24.h),
 
           Obx(() => PrayerItem(
             iconPath: 'isya.svg',
-            name: 'Isha',
+            name: 'isha'.tr,
+            prayerKey: 'isha',
             time: controller.ishaTime.value,
           )),
           SizedBox(height: 24.h),

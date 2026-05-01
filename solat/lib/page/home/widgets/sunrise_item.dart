@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
-import '../HomeController.dart';
+import '../home_controller.dart';
 
 class SunriseItem extends GetView<HomeController> {
   const SunriseItem({super.key});
@@ -40,7 +40,7 @@ class SunriseItem extends GetView<HomeController> {
           ),
 
           Text(
-            'Sunrise',
+            'sunrise'.tr,
             style: theme.textTheme.bodyMedium?.copyWith(
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
@@ -49,13 +49,13 @@ class SunriseItem extends GetView<HomeController> {
           ),
 
           Obx(() => Text(
-            controller.sunriseTime.value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              color: colorScheme.onSurface,
-            ),
-          )),
+                controller.sunriseTime.value,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                ),
+              )),
         ],
       ),
     );

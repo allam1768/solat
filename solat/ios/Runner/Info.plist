@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Solat</string>
+	<string>Salat</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>solat</string>
+	<string>Salat</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -49,5 +49,9 @@
     <string>Aplikasi memerlukan akses lokasi untuk menampilkan jadwal sholat sesuai lokasi Anda</string>
     <key>NSLocationAlwaysUsageDescription</key>
     <string>Aplikasi memerlukan akses lokasi untuk menampilkan jadwal sholat sesuai lokasi Anda</string>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+      <string>https</string>
+    </array>
 </dict>
 </plist>

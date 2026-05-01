@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
-import '../MainController.dart';
+import '../main_controller.dart';
 
 class CustomBottomNav extends StatelessWidget {
   CustomBottomNav({super.key});
@@ -27,7 +27,7 @@ class CustomBottomNav extends StatelessWidget {
         padding: EdgeInsets.all(8.w),
         decoration: BoxDecoration(
           color: colorScheme.surface, // ✅ ikut theme
-          borderRadius: BorderRadius.circular(10.r),
+          borderRadius: BorderRadius.circular(15.r),
           border: Border.all(
             color: colorScheme.onSurface, // ✅ border ikut theme
             width: 1.5.w,
@@ -37,8 +37,7 @@ class CustomBottomNav extends StatelessWidget {
           builder: (context, constraints) {
             const itemCount = 3;
             final totalGap = gap.w * (itemCount - 1);
-            final itemWidth =
-                (constraints.maxWidth - totalGap) / itemCount;
+            final itemWidth = (constraints.maxWidth - totalGap) / itemCount;
 
             return Row(
               children: [
@@ -69,12 +68,10 @@ class CustomBottomNav extends StatelessWidget {
             );
           },
         ),
-
       ),
     );
   }
 }
-
 
 class _NavItem extends StatelessWidget {
   const _NavItem({
@@ -96,8 +93,7 @@ class _NavItem extends StatelessWidget {
         controller.changeTab(index);
       },
       child: Obx(() {
-        final isActive =
-            controller.currentIndex.value == index;
+        final isActive = controller.currentIndex.value == index;
 
         return AspectRatio(
           aspectRatio: 1,
@@ -106,13 +102,13 @@ class _NavItem extends StatelessWidget {
               color: isActive
                   ? colorScheme.onSurface // ✅ active bg
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(5.r),
+              borderRadius: BorderRadius.circular(10.r),
               border: isActive
                   ? null
                   : Border.all(
-                color: colorScheme.onSurface, // ✅ border ikut theme
-                width: 1.5.w,
-              ),
+                      color: colorScheme.onSurface, // ✅ border ikut theme
+                      width: 1.5.w,
+                    ),
             ),
             child: Center(
               child: Icon(
