@@ -54,6 +54,7 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
         const val EXTRA_NEXT_PRAYER_TIME = "extra_next_prayer_time"
         const val EXTRA_REQUEST_CODE = "extra_request_code"
         const val EXTRA_IS_SNOOZE = "extra_is_snooze"
+        const val EXTRA_BASE_TIME = "extra_base_time"
         const val EXTRA_ATTEMPT_COUNT = "extra_attempt_count"
     }
 }

@@ -31,6 +31,7 @@ object NativeOverlayScheduler {
     private const val KEY_SCHED_MSG_SUFFIX = "_msg"
     private const val KEY_SCHED_NEXT_NAME_SUFFIX = "_next_name"
     private const val KEY_SCHED_NEXT_TIME_SUFFIX = "_next_time"
+    private const val KEY_SCHED_BASE_TIME_SUFFIX = "_base_time"
 
     fun schedulePrayerOverlays(context: Context, times: Map<String, String?>) {
         try {
@@ -53,8 +54,8 @@ object NativeOverlayScheduler {
                     offsetMinutes = -30,
                     prayerName = "Subuh",
                     message = "Fajr time will end in 30 minutes!\nPlease pray Fajr soon.",
-                    nextPrayerName = "Dzuhur",
-                    nextPrayerTime = dhuhr
+                    nextPrayerName = "Sunrise",
+                    nextPrayerTime = sunrise
                 )
 
                 // Dzuhur: 30 menit sebelum Ashar
@@ -152,6 +153,7 @@ object NativeOverlayScheduler {
             message = message,
             nextPrayerName = nextPrayerName,
             nextPrayerTime = nextPrayerTime,
+            baseTime = baseTime,
             attemptCount = 0,
         )
 
@@ -167,6 +169,7 @@ object NativeOverlayScheduler {
             message = message,
             nextPrayerName = nextPrayerName,
             nextPrayerTime = nextPrayerTime,
+            baseTime = baseTime,
         )
 
         Log.d(TAG, "Scheduled $prayerName overlay at ${cal.time} (persisted)")
@@ -174,7 +177,7 @@ object NativeOverlayScheduler {
 
     fun scheduleSnooze(context: Context, requestCode: Int, prayerName: String, currentAttempt: Int) {
         // Max 2 snooze (attempt 0, 1, 2)
-        if (currentAttempt >= 2) {
+        if (currentAttempt > 2) {
             Log.d(TAG, "Max snooze reached for $prayerName")
             return
         }
@@ -182,15 +185,27 @@ object NativeOverlayScheduler {
         // Save attempt count
         saveAttemptCount(context, requestCode, currentAttempt)
 
-        // Snooze +5 menit
+        val snoozeMinutes = if (currentAttempt == 1) 10 else 5
+
         val cal = Calendar.getInstance().apply {
             timeInMillis = System.currentTimeMillis()
-            add(Calendar.MINUTE, 5)
+            add(Calendar.MINUTE, snoozeMinutes)
         }
+
+        // Ambil data yang tersimpan untuk melengkapi intent snooze
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val message = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX", "It's time") ?: "It's time"
+        val nextName = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_NAME_SUFFIX", "") ?: ""
+        val nextTime = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_TIME_SUFFIX", "") ?: ""
+        val baseTime = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_BASE_TIME_SUFFIX", "") ?: ""
 
         val intent = Intent(context, PrayerAlarmReceiver::class.java).apply {
             action = PrayerAlarmReceiver.ACTION_PRAYER_ALARM
             putExtra(PrayerAlarmReceiver.EXTRA_PRAYER_NAME, prayerName)
+            putExtra(PrayerAlarmReceiver.EXTRA_MESSAGE, message)
+            putExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_NAME, nextName)
+            putExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_TIME, nextTime)
+            putExtra(PrayerAlarmReceiver.EXTRA_BASE_TIME, baseTime)
             putExtra(PrayerAlarmReceiver.EXTRA_IS_SNOOZE, true)
             putExtra(PrayerAlarmReceiver.EXTRA_REQUEST_CODE, requestCode)
             putExtra(PrayerAlarmReceiver.EXTRA_ATTEMPT_COUNT, currentAttempt)
@@ -201,7 +216,7 @@ object NativeOverlayScheduler {
 
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            requestCode,
+            requestCode + 1000, // Bedain ID snooze pakai +1000 biar gak menghapus alarm besok
             intent,
             flags
         )
@@ -239,9 +254,17 @@ object NativeOverlayScheduler {
             intent,
             flags
         )
+        val snoozePendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode + 1000,
+            intent,
+            flags
+        )
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.cancel(pendingIntent)
+        alarmManager.cancel(snoozePendingIntent) // Pastikan snooze juga kehapus
+
 
         // Reset attempt count
         resetAttemptCount(context, requestCode)
@@ -326,6 +349,7 @@ object NativeOverlayScheduler {
         val message = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX", "It's time") ?: "It's time"
         val nextPrayerName = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_NAME_SUFFIX", "") ?: ""
         val nextPrayerTime = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_TIME_SUFFIX", "") ?: ""
+        val baseTime = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_BASE_TIME_SUFFIX", "") ?: ""
 
         // Schedule untuk waktu terdekat: hari ini jam:menit, kalau sudah lewat -> besok
         val now = System.currentTimeMillis()
@@ -346,6 +370,7 @@ object NativeOverlayScheduler {
             message = message,
             nextPrayerName = nextPrayerName,
             nextPrayerTime = nextPrayerTime,
+            baseTime = baseTime,
             attemptCount = 0,
         )
 
@@ -365,6 +390,7 @@ object NativeOverlayScheduler {
         val message = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX", "It's time") ?: "It's time"
         val nextPrayerName = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_NAME_SUFFIX", "") ?: ""
         val nextPrayerTime = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_TIME_SUFFIX", "") ?: ""
+        val baseTime = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_BASE_TIME_SUFFIX", "") ?: ""
 
         val now = System.currentTimeMillis()
         val cal = Calendar.getInstance().apply {
@@ -384,6 +410,7 @@ object NativeOverlayScheduler {
             message = message,
             nextPrayerName = nextPrayerName,
             nextPrayerTime = nextPrayerTime,
+            baseTime = baseTime,
             attemptCount = 0,
         )
 
@@ -398,6 +425,7 @@ object NativeOverlayScheduler {
         message: String,
         nextPrayerName: String,
         nextPrayerTime: String,
+        baseTime: String,
         attemptCount: Int,
     ) {
         val intent = Intent(context, PrayerAlarmReceiver::class.java).apply {
@@ -406,6 +434,7 @@ object NativeOverlayScheduler {
             putExtra(PrayerAlarmReceiver.EXTRA_MESSAGE, message)
             putExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_NAME, nextPrayerName)
             putExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_TIME, nextPrayerTime)
+            putExtra(PrayerAlarmReceiver.EXTRA_BASE_TIME, baseTime)
             putExtra(PrayerAlarmReceiver.EXTRA_REQUEST_CODE, requestCode)
             putExtra(PrayerAlarmReceiver.EXTRA_ATTEMPT_COUNT, attemptCount)
         }
@@ -446,6 +475,7 @@ object NativeOverlayScheduler {
         message: String,
         nextPrayerName: String,
         nextPrayerTime: String,
+        baseTime: String,
     ) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit()
@@ -455,6 +485,7 @@ object NativeOverlayScheduler {
             .putString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX", message)
             .putString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_NAME_SUFFIX", nextPrayerName)
             .putString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_TIME_SUFFIX", nextPrayerTime)
+            .putString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_BASE_TIME_SUFFIX", baseTime)
             .apply()
     }
 
@@ -467,6 +498,7 @@ object NativeOverlayScheduler {
             .remove("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX")
             .remove("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_NAME_SUFFIX")
             .remove("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_TIME_SUFFIX")
+            .remove("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_BASE_TIME_SUFFIX")
             .apply()
     }
 }

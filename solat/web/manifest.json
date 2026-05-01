@@ -1,6 +1,6 @@
 {
-    "name": "solat",
-    "short_name": "solat",
+    "name": "Salat",
+    "short_name": "Salat",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -1,10 +1,11 @@
+// ignore_for_file: constant_identifier_names
 import 'package:get/get.dart';
-import 'package:solat/page/onboarding/OnboardingBinding.dart';
-import 'package:solat/page/onboarding/OnboardingScreen.dart';
-import '../page/splash/SplashScreen.dart';
-import '../page/splash/SplashBinding.dart';
-import '../page/main/MainScreen.dart';
-import '../page/main/MainBinding.dart';
+import 'package:solat/page/onboarding/onboarding_binding.dart';
+import 'package:solat/page/onboarding/onboarding_screen.dart';
+import '../page/splash/splash_screen.dart';
+import '../page/splash/splash_binding.dart';
+import '../page/main/main_screen.dart';
+import '../page/main/main_binding.dart';
 import 'app_routes.dart';
 
 class AppPages {

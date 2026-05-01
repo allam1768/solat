@@ -26,12 +26,12 @@ import androidx.core.app.NotificationCompat
  * Flow:
  * - Overlay 1 (attempt 0):
  *   ✅ AUTO-SCHEDULE BESOK (tanpa cancel alarm hari ini!)
- *   → Auto-snooze 2 menit jika tidak ada interaksi
- * - Overlay 2 (attempt 1): Auto-snooze 2 menit jika tidak ada interaksi
- * - Overlay 3 (attempt 2): Tidak ada auto-snooze, harus dipilih manual
+ *   → Auto-snooze 10 menit jika tidak ada interaksi
+ * - Overlay 2 (attempt 1): Auto-snooze 5 menit jika tidak ada interaksi
+ * - Overlay 3 (attempt 2): Auto-snooze "sampai waktu sholat selanjutnya" (Dismiss)
  *
  * PASTI-PASTI:
- * - Overlay PASTI muncul 3x (karena alarm hari ini tidak di-cancel)
+ * - Overlay muncul 3x jika diabaikan (dengan durasi snooze berbeda)
  * - Besok PASTI ada alarm (karena auto-schedule di overlay 1)
  */
 class PrayerOverlayService : Service() {
@@ -61,6 +61,7 @@ class PrayerOverlayService : Service() {
         val nextPrayerTime = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_TIME) ?: ""
         val requestCode = intent.getIntExtra(PrayerAlarmReceiver.EXTRA_REQUEST_CODE, -1)
         val attemptCount = intent.getIntExtra(PrayerAlarmReceiver.EXTRA_ATTEMPT_COUNT, 0)
+        val baseTime = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_BASE_TIME) ?: ""
 
         val notification = buildForegroundNotification(prayerName, message)
         startForeground(FOREGROUND_NOTIFICATION_ID, notification)
@@ -70,6 +71,7 @@ class PrayerOverlayService : Service() {
             message = message,
             nextPrayerName = nextPrayerName,
             nextPrayerTime = nextPrayerTime,
+            baseTime = baseTime,
             requestCode = requestCode,
             attemptCount = attemptCount
         )
@@ -91,6 +93,7 @@ class PrayerOverlayService : Service() {
         message: String,
         nextPrayerName: String,
         nextPrayerTime: String,
+        baseTime: String,
         requestCode: Int,
         attemptCount: Int
     ) {
@@ -109,10 +112,10 @@ class PrayerOverlayService : Service() {
             NativeOverlayScheduler.scheduleTomorrowWithoutCancellingToday(ctx, requestCode)
         }
 
-        // Setup auto snooze untuk overlay 1 & 2 saja (2 menit = 120000 ms)
-        if (!isLastAttempt) {
-            scheduleAutoSnooze(requestCode, prayerName, attemptCount)
-        }
+        // Setup auto snooze:
+        // Overlay 1 & 2: 2 menit on-screen (timeout) -> snooze 10m/5m
+        // Overlay 3: Stay UNTIL next prayer time
+        scheduleAutoSnooze(requestCode, prayerName, attemptCount, nextPrayerTime)
 
         // ========================================
         // ROOT CONTAINER
@@ -142,7 +145,7 @@ class PrayerOverlayService : Service() {
             val drawable = android.graphics.drawable.GradientDrawable().apply {
                 shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                 setColor(Color.WHITE)
-                cornerRadius = 10f.dp().toFloat() // 10dp rounded
+                cornerRadius = 15f.dp().toFloat() // 15dp rounded
                 setStroke(1.5f.dp(), Color.BLACK) // 1.5dp border
             }
             background = drawable
@@ -175,10 +178,30 @@ class PrayerOverlayService : Service() {
         }
 
         // ========================================
-        // MESSAGE TEXT
+        // MESSAGE TEXT (DYNAMIC)
         // ========================================
+        val dynamicMessage = if (baseTime.isNotEmpty()) {
+            if (prayerName == "Isya") {
+                val diff = getMinutesDifference(baseTime, isPast = true)
+                if (diff >= 0) {
+                    val unit = if (diff == 1) "minute" else "minutes"
+                    "It has been $diff $unit since $prayerName started.\nPlease pray $prayerName soon."
+                } else message
+            } else {
+                val diff = getMinutesDifference(baseTime, isPast = false)
+                val unit = if (diff == 1) "minute" else "minutes"
+                when {
+                    diff > 0 -> "$prayerName time will end in $diff $unit!\nPlease pray $prayerName soon."
+                    diff == 0 -> "$prayerName time is ending now!\nPlease pray $prayerName immediately."
+                    else -> "$prayerName time has ended!\nPlease pray $prayerName as soon as possible."
+                }
+            }
+        } else {
+            message
+        }
+
         val messageView = TextView(ctx).apply {
-            text = message
+            text = dynamicMessage
             textSize = 13f
             setTextColor(Color.BLACK)
             typeface = Typeface.create(Typeface.DEFAULT, 600, false) // fontWeight w600
@@ -217,7 +240,7 @@ class PrayerOverlayService : Service() {
                 background = android.graphics.drawable.GradientDrawable().apply {
                     shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                     setColor(Color.WHITE)
-                    cornerRadius = 5f.dp().toFloat()
+                    cornerRadius = 10f.dp().toFloat()
                     setStroke(2.dp(), Color.BLACK)
                 }
 
@@ -254,7 +277,7 @@ class PrayerOverlayService : Service() {
                 background = android.graphics.drawable.GradientDrawable().apply {
                     shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                     setColor(Color.WHITE)
-                    cornerRadius = 5f.dp().toFloat()
+                    cornerRadius = 10f.dp().toFloat()
                     setStroke(2.dp(), Color.BLACK)
                 }
 
@@ -268,36 +291,10 @@ class PrayerOverlayService : Service() {
                 }
             }
 
-            // ✅ Spacing 16dp
-            val spacer2 = android.view.View(ctx).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    16.dp()
-                )
-            }
-
-            // ✅ "Skip this time" TEXT BUTTON (fontSize 10sp, color black12, fontWeight w500)
-            val skipButton = TextView(ctx).apply {
-                text = "Skip this time"
-                textSize = 10f
-                setTextColor(Color.parseColor("#1F000000")) // Colors.black12 = 12% opacity
-                typeface = Typeface.create(Typeface.DEFAULT, 500, false) // fontWeight w500
-                gravity = Gravity.CENTER
-                setPadding(0, 12.dp(), 0, 12.dp()) // TextButton padding approximation
-
-                // ✅ UPDATED: Cukup tutup overlay
-                setOnClickListener {
-                    removeOverlay()
-                    stopSelf()
-                }
-            }
-
             // Add all vertical buttons
             buttonsContainer.addView(doneButton)
             buttonsContainer.addView(spacer1)
             buttonsContainer.addView(onMyWayButton)
-            buttonsContainer.addView(spacer2)
-            buttonsContainer.addView(skipButton)
 
             // Add to card
             card.addView(iconView)
@@ -337,7 +334,7 @@ class PrayerOverlayService : Service() {
                 background = android.graphics.drawable.GradientDrawable().apply {
                     shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                     setColor(Color.WHITE)
-                    cornerRadius = 5f.dp().toFloat()
+                    cornerRadius = 10f.dp().toFloat()
                     setStroke(2.dp(), Color.BLACK)
                 }
 
@@ -367,7 +364,7 @@ class PrayerOverlayService : Service() {
                 background = android.graphics.drawable.GradientDrawable().apply {
                     shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                     setColor(Color.WHITE)
-                    cornerRadius = 5f.dp().toFloat()
+                    cornerRadius = 10f.dp().toFloat()
                     setStroke(2.dp(), Color.BLACK)
                 }
 
@@ -436,19 +433,90 @@ class PrayerOverlayService : Service() {
         overlayView = null
     }
 
-    private fun scheduleAutoSnooze(requestCode: Int, prayerName: String, attemptCount: Int) {
+    private fun scheduleAutoSnooze(requestCode: Int, prayerName: String, attemptCount: Int, nextPrayerTime: String) {
+        val isLastAttempt = attemptCount >= 2
+        
         autoSnoozeRunnable = Runnable {
-            // Auto snooze setelah 2 menit
-            // Besok akan dijadwalkan saat user klik "I've prayed"
-            if (requestCode != -1) {
-                NativeOverlayScheduler.scheduleSnooze(this, requestCode, prayerName, attemptCount + 1)
+            if (isLastAttempt) {
+                // Overlay 3: User mengabaikan sampai waktu sholat berikutnya masuk (kemungkinan ketiduran/sibuk)
+                showMissedNotification(prayerName)
+                removeOverlay()
+                stopSelf()
+            } else {
+                // Overlay 1 & 2: Jadwalkan snooze (10m / 5m)
+                if (requestCode != -1) {
+                    NativeOverlayScheduler.scheduleSnooze(this, requestCode, prayerName, attemptCount + 1)
+                }
+                removeOverlay()
+                stopSelf()
             }
-            removeOverlay()
-            stopSelf()
         }
 
-        // Schedule untuk 2 menit (120000 milliseconds)
-        autoSnoozeHandler?.postDelayed(autoSnoozeRunnable!!, 120000)
+        val delayMillis = if (isLastAttempt) {
+            // Hitung sisa waktu sampai sholat berikutnya (auto-close saat sholat selanjutnya masuk)
+            getMillisUntil(nextPrayerTime).let { 
+                if (it >= 0) it else 3600000 // Fallback 1 jam kalau gagal parse
+            }
+        } else {
+            // Overlay 1 & 2: Tunggu 2 menit di layar sebelum auto-snooze
+            120000L
+        }
+
+        autoSnoozeHandler?.postDelayed(autoSnoozeRunnable!!, delayMillis)
+    }
+
+    private fun getMinutesDifference(timeStr: String, isPast: Boolean): Int {
+        if (timeStr.isEmpty()) return -1
+        return try {
+            val hm = timeStr.split(":")
+            if (hm.size != 2) return -1
+            val h = hm[0].toInt()
+            val m = hm[1].toInt()
+            
+            val now = java.util.Calendar.getInstance()
+            val target = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, h)
+                set(java.util.Calendar.MINUTE, m)
+                set(java.util.Calendar.SECOND, 0)
+                set(java.util.Calendar.MILLISECOND, 0)
+            }
+            
+            val diffMillis = if (isPast) {
+                now.timeInMillis - target.timeInMillis
+            } else {
+                target.timeInMillis - now.timeInMillis
+            }
+            
+            (diffMillis / 60000).toInt()
+        } catch (e: Exception) {
+            -1
+        }
+    }
+
+    private fun getMillisUntil(timeStr: String): Long {
+        if (timeStr.isEmpty()) return -1
+        return try {
+            val hm = timeStr.split(":")
+            if (hm.size != 2) return -1
+            val h = hm[0].toInt()
+            val m = hm[1].toInt()
+            
+            val now = java.util.Calendar.getInstance()
+            val target = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, h)
+                set(java.util.Calendar.MINUTE, m)
+                set(java.util.Calendar.SECOND, 0)
+                set(java.util.Calendar.MILLISECOND, 0)
+            }
+            
+            if (target.before(now)) {
+                return 0L // Sudah lewat, tutup sekarang
+            }
+            
+            target.timeInMillis - now.timeInMillis
+        } catch (e: Exception) {
+            -1
+        }
     }
 
     private fun cancelAutoSnooze() {
@@ -518,8 +586,25 @@ class PrayerOverlayService : Service() {
         }
     }
 
+    /**
+     * Menampilkan notifikasi "Missed Prayer" jika user mengabaikan pengingat terakhir
+     */
+    private fun showMissedNotification(prayerName: String) {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Missed Prayer")
+            .setContentText("You didn't mark $prayerName as done. Please don't forget to pray.")
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .build()
+        
+        nm.notify(MISSED_NOTIFICATION_ID, notification)
+    }
+
     companion object {
         private const val CHANNEL_ID = "prayer_overlay_service_channel"
         private const val FOREGROUND_NOTIFICATION_ID = 991
+        private const val MISSED_NOTIFICATION_ID = 992
     }
 }

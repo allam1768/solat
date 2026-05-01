@@ -2,27 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:solat/page/home/HomeController.dart';
-import 'package:solat/service/NotificationService.dart';
-import 'package:solat/service/OverlaySchedulerService.dart';
+import 'package:solat/service/location_service.dart';
+import 'package:solat/service/prayer_time_service.dart';
+import 'package:solat/service/notification_service.dart';
+import 'package:solat/service/overlay_scheduler_service.dart';
 import 'core/app_theme.dart';
+import 'core/localization/app_translations.dart';
 import 'routes/app_pages.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 @pragma("vm:entry-point")
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // ✅ Init storage dulu
   await GetStorage.init();
 
-  // ✅ Initialize notification service (tanpa request permission)
-  await NotificationService().initialize();
+  // ✅ Initialize Global Services
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+  Get.put(notificationService);
 
-  // ✅ Initialize overlay channel (tanpa request permission)
-  await OverlaySchedulerService().initializeOverlayChannel();
+  final overlayScheduler = OverlaySchedulerService();
+  await overlayScheduler.initializeOverlayChannel();
+  Get.put(overlayScheduler);
 
+  Get.put(LocationService());
+  Get.put(PrayerTimeService());
 
   // ✅ Lock orientation
   await SystemChrome.setPreferredOrientations([
@@ -41,14 +47,11 @@ void main() async {
   runApp(const MyApp());
 }
 
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    Get.put(HomeController());
-
     final storage = GetStorage();
     final isDarkTheme = storage.read('isDarkTheme') ?? false;
 
@@ -63,6 +66,9 @@ class MyApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: isDarkTheme ? ThemeMode.dark : ThemeMode.light,
+          translations: AppTranslations(),
+          locale: Locale(storage.read('languageCode') ?? 'en', storage.read('countryCode') ?? 'US'),
+          fallbackLocale: const Locale('en', 'US'),
           initialRoute: AppPages.INITIAL,
           getPages: AppPages.routes,
           defaultTransition: Transition.fadeIn,
