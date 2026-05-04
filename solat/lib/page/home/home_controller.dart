@@ -38,6 +38,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   double? latitude;
   double? longitude;
+  String? isoCountryCode;
 
   Timer? _timer;
 
@@ -96,6 +97,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
     latitude = result.latitude;
     longitude = result.longitude;
+    isoCountryCode = result.isoCountryCode;
     isLoadingLocation.value = false;
 
     await _fetchPrayerTimes();
@@ -141,7 +143,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
     isLoadingPrayer.value = true;
     final model =
-        await _prayerTimeService.fetchPrayerTimes(latitude!, longitude!);
+        await _prayerTimeService.fetchPrayerTimes(latitude!, longitude!, isoCountryCode: isoCountryCode);
 
     fajrTime.value = model.fajr;
     sunriseTime.value = model.sunrise;
@@ -168,6 +170,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     try {
       await _notificationService.schedulePrayerNotifications(
         fajrTime: fajrTime.value,
+        sunriseTime: sunriseTime.value,
         dhuhrTime: dhuhrTime.value,
         asrTime: asrTime.value,
         maghribTime: maghribTime.value,
