@@ -56,8 +56,8 @@ class NotificationService {
             playSound: true,
             defaultRingtoneType: DefaultRingtoneType.Notification,
             enableVibration: true,
-            enableLights: false,
-            criticalAlerts: false,
+            enableLights: true,
+            criticalAlerts: true,
           ),
         ],
         debug: true,
@@ -144,15 +144,27 @@ class NotificationService {
         }
 
         // 3. -30 Minutes (Hanya jika profile == 0 / Basic Mode, dan endTime ada)
-        if (profile == 0 && endTime != null && endTime != '--:--' && endTime != 'Error') {
-          final minus30Time = _addMinutes(endTime, -30);
-          if (minus30Time != null) {
-            await _schedulePrayerNotification(
-              id: baseId + 3,
-              title: '🕌 $title Ending Soon',
-              body: 'Only 30 minutes left for $title prayer.',
-              time: minus30Time,
-            );
+        if (profile == 0) {
+          if (title == 'Isha') {
+            final plus60Time = _addMinutes(startTime, 60);
+            if (plus60Time != null) {
+              await _schedulePrayerNotification(
+                id: baseId + 3,
+                title: '🕌 $title Ending Soon',
+                body: 'It has been 60 minutes since $title started. Please pray Isha soon.',
+                time: plus60Time,
+              );
+            }
+          } else if (endTime != null && endTime != '--:--' && endTime != 'Error') {
+            final minus30Time = _addMinutes(endTime, -30);
+            if (minus30Time != null) {
+              await _schedulePrayerNotification(
+                id: baseId + 3,
+                title: '🕌 $title Ending Soon',
+                body: 'Only 30 minutes left for $title prayer.',
+                time: minus30Time,
+              );
+            }
           }
         }
       }
@@ -162,7 +174,6 @@ class NotificationService {
       await scheduleForPrayer(baseId: dhuhrBaseId, title: 'Dhuhr', startTime: dhuhrTime, endTime: asrTime);
       await scheduleForPrayer(baseId: asrBaseId, title: 'Asr', startTime: asrTime, endTime: maghribTime);
       await scheduleForPrayer(baseId: maghribBaseId, title: 'Maghrib', startTime: maghribTime, endTime: ishaTime);
-      // Untuk isya, sesuai permintaan, tidak ada notifikasi akhir waktu (-30m), jadi endTime null
       await scheduleForPrayer(baseId: ishaBaseId, title: 'Isha', startTime: ishaTime, endTime: null);
 
       await checkPendingNotifications();
@@ -218,11 +229,11 @@ class NotificationService {
           channelKey: prayerChannelKey,
           title: title,
           body: body,
-          category: NotificationCategory.Reminder,
+          category: NotificationCategory.Alarm,
           notificationLayout: NotificationLayout.Default,
-          wakeUpScreen: false,
-          fullScreenIntent: false,
-          criticalAlert: false,
+          wakeUpScreen: true,
+          fullScreenIntent: true,
+          criticalAlert: true,
           autoDismissible: true,
           displayOnForeground: true,
           displayOnBackground: true,
