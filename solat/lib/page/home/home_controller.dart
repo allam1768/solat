@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:get_storage/get_storage.dart';
 import '../../service/notification_service.dart';
 import '../../service/overlay_scheduler_service.dart';
 import '../../service/location_service.dart';
@@ -38,6 +39,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   double? latitude;
   double? longitude;
+  String? isoCountryCode;
 
   Timer? _timer;
 
@@ -83,21 +85,55 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     isLoadingLocation.value = true;
     locationError.value = '';
 
+    final storage = GetStorage();
+    
+    // 1. Try to load from cache first for immediate UI rendering & offline mode
+    final cachedLat = storage.read<double>('last_lat');
+    final cachedLng = storage.read<double>('last_lng');
+    final cachedCity = storage.read<String>('last_city');
+    final cachedProvince = storage.read<String>('last_province');
+    final cachedIso = storage.read<String>('last_iso');
+
+    if (cachedLat != null && cachedLng != null) {
+      latitude = cachedLat;
+      longitude = cachedLng;
+      cityName.value = cachedCity ?? 'Offline Location';
+      provinceName.value = cachedProvince ?? '';
+      isoCountryCode = cachedIso;
+      
+      // Calculate locally using Adhan (no internet needed)
+      await _fetchPrayerTimes();
+      isLoadingLocation.value = false;
+    }
+
+    // 2. Try to get fresh location in the background
     final result = await _locationService.getCurrentLocation(silent: true);
 
-    cityName.value = result.cityName;
-    provinceName.value = result.provinceName;
-
     if (result.hasError) {
-      locationError.value = result.errorMessage;
+      // If fresh location fails (e.g. offline) and we don't have cache, show error
+      if (cachedLat == null) {
+        locationError.value = result.errorMessage;
+        cityName.value = result.cityName;
+        provinceName.value = result.provinceName;
+      }
       isLoadingLocation.value = false;
       return;
     }
 
+    // 3. If fresh location succeeds, update variables, save to cache, and recalculate
+    cityName.value = result.cityName;
+    provinceName.value = result.provinceName;
     latitude = result.latitude;
     longitude = result.longitude;
-    isLoadingLocation.value = false;
+    isoCountryCode = result.isoCountryCode;
 
+    storage.write('last_lat', result.latitude);
+    storage.write('last_lng', result.longitude);
+    storage.write('last_city', result.cityName);
+    storage.write('last_province', result.provinceName);
+    storage.write('last_iso', result.isoCountryCode);
+
+    isLoadingLocation.value = false;
     await _fetchPrayerTimes();
   }
 
@@ -141,7 +177,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
     isLoadingPrayer.value = true;
     final model =
-        await _prayerTimeService.fetchPrayerTimes(latitude!, longitude!);
+        await _prayerTimeService.fetchPrayerTimes(latitude!, longitude!, isoCountryCode: isoCountryCode);
 
     fajrTime.value = model.fajr;
     sunriseTime.value = model.sunrise;
@@ -168,6 +204,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     try {
       await _notificationService.schedulePrayerNotifications(
         fajrTime: fajrTime.value,
+        sunriseTime: sunriseTime.value,
         dhuhrTime: dhuhrTime.value,
         asrTime: asrTime.value,
         maghribTime: maghribTime.value,

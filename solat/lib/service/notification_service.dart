@@ -12,11 +12,12 @@ class NotificationService {
   // Storage key for notification enable/disable
   static const String notificationEnabledKey = 'notification_enabled';
 
-  static const int fajrNotificationId = 1;
-  static const int dhuhrNotificationId = 2;
-  static const int asrNotificationId = 3;
-  static const int maghribNotificationId = 4;
-  static const int ishaNotificationId = 5;
+  // Notification ID bases
+  static const int fajrBaseId = 100;
+  static const int dhuhrBaseId = 200;
+  static const int asrBaseId = 300;
+  static const int maghribBaseId = 400;
+  static const int ishaBaseId = 500;
 
   static const String prayerChannelKey = 'prayer_times_channel';
   static const String prayerChannelName = 'Prayer Times';
@@ -55,8 +56,8 @@ class NotificationService {
             playSound: true,
             defaultRingtoneType: DefaultRingtoneType.Notification,
             enableVibration: true,
-            enableLights: false,
-            criticalAlerts: false,
+            enableLights: true,
+            criticalAlerts: true,
           ),
         ],
         debug: true,
@@ -94,68 +95,109 @@ class NotificationService {
 
   Future<void> schedulePrayerNotifications({
     required String fajrTime,
+    required String sunriseTime,
     required String dhuhrTime,
     required String asrTime,
     required String maghribTime,
     required String ishaTime,
   }) async {
     try {
-      final profile = _storage.read('reminderProfile') ?? 1;
+      final profile = _storage.read('reminderProfile') ?? 1; // 0 = Basic, 1 = Smart
 
-      // Check if notifications are enabled or if GUARDIAN profile is active
-      if (!isNotificationEnabled() || profile == 2) {
-        debugPrint('Notifications disabled or Profile is GUARDIAN: Cancelling notifications');
+      // Check if notifications are enabled
+      if (!isNotificationEnabled()) {
+        debugPrint('Notifications disabled: Cancelling notifications');
         await cancelAllNotifications();
         return;
       }
 
       // Cancel previous notifications
       await cancelAllNotifications();
-
-      // Small delay to ensure cancellations complete
       await Future.delayed(const Duration(milliseconds: 300));
 
-      // Schedule each prayer time
-      await _schedulePrayerNotification(
-        id: fajrNotificationId,
-        title: '🕌 Fajr Time',
-        body: 'It\'s time for Fajr prayer.',
-        time: fajrTime,
-      );
+      // Helper to schedule a set of notifications for a prayer
+      Future<void> scheduleForPrayer({
+        required int baseId,
+        required String title,
+        required String startTime,
+        String? endTime,
+      }) async {
+        if (startTime == '--:--' || startTime == 'Error') return;
 
-      await _schedulePrayerNotification(
-        id: dhuhrNotificationId,
-        title: '🕌 Dhuhr Time',
-        body: 'It\'s time for Dhuhr prayer.',
-        time: dhuhrTime,
-      );
+        // 1. Start Time
+        await _schedulePrayerNotification(
+          id: baseId + 1,
+          title: '🕌 $title Time',
+          body: 'It\'s time for $title prayer.',
+          time: startTime,
+        );
 
-      await _schedulePrayerNotification(
-        id: asrNotificationId,
-        title: '🕌 Asr Time',
-        body: 'It\'s time for Asr prayer.',
-        time: asrTime,
-      );
+        // 2. +30 Minutes
+        final plus30Time = _addMinutes(startTime, 30);
+        if (plus30Time != null) {
+          await _schedulePrayerNotification(
+            id: baseId + 2,
+            title: '🕌 $title Reminder',
+            body: '30 minutes have passed since $title started.',
+            time: plus30Time,
+          );
+        }
 
-      await _schedulePrayerNotification(
-        id: maghribNotificationId,
-        title: '🕌 Maghrib Time',
-        body: 'It\'s time for Maghrib prayer.',
-        time: maghribTime,
-      );
+        // 3. -30 Minutes (Hanya jika profile == 0 / Basic Mode, dan endTime ada)
+        if (profile == 0) {
+          if (title == 'Isha') {
+            final plus60Time = _addMinutes(startTime, 60);
+            if (plus60Time != null) {
+              await _schedulePrayerNotification(
+                id: baseId + 3,
+                title: '🕌 $title Ending Soon',
+                body: 'It has been 60 minutes since $title started. Please pray Isha soon.',
+                time: plus60Time,
+              );
+            }
+          } else if (endTime != null && endTime != '--:--' && endTime != 'Error') {
+            final minus30Time = _addMinutes(endTime, -30);
+            if (minus30Time != null) {
+              await _schedulePrayerNotification(
+                id: baseId + 3,
+                title: '🕌 $title Ending Soon',
+                body: 'Only 30 minutes left for $title prayer.',
+                time: minus30Time,
+              );
+            }
+          }
+        }
+      }
 
-      await _schedulePrayerNotification(
-        id: ishaNotificationId,
-        title: '🕌 Isha Time',
-        body: 'It\'s time for Isha prayer.',
-        time: ishaTime,
-      );
+      // Jadwalkan untuk setiap waktu sholat
+      await scheduleForPrayer(baseId: fajrBaseId, title: 'Fajr', startTime: fajrTime, endTime: sunriseTime);
+      await scheduleForPrayer(baseId: dhuhrBaseId, title: 'Dhuhr', startTime: dhuhrTime, endTime: asrTime);
+      await scheduleForPrayer(baseId: asrBaseId, title: 'Asr', startTime: asrTime, endTime: maghribTime);
+      await scheduleForPrayer(baseId: maghribBaseId, title: 'Maghrib', startTime: maghribTime, endTime: ishaTime);
+      await scheduleForPrayer(baseId: ishaBaseId, title: 'Isha', startTime: ishaTime, endTime: null);
 
       await checkPendingNotifications();
     } catch (e) {
       debugPrint('❌ Error scheduling prayer notifications: $e');
       rethrow;
     }
+  }
+
+  String? _addMinutes(String time, int minutesToAdd) {
+    if (time.isEmpty || time == '--:--' || time == 'Error') return null;
+    final parts = time.split(':');
+    if (parts.length != 2) return null;
+    
+    int hour = int.parse(parts[0]);
+    int minute = int.parse(parts[1]);
+    
+    int totalMinutes = hour * 60 + minute + minutesToAdd;
+    if (totalMinutes < 0) totalMinutes += 24 * 60; // mundur ke hari sebelumnya
+    
+    int newHour = (totalMinutes ~/ 60) % 24;
+    int newMinute = totalMinutes % 60;
+    
+    return '${newHour.toString().padLeft(2, '0')}:${newMinute.toString().padLeft(2, '0')}';
   }
 
   Future<void> _schedulePrayerNotification({
@@ -187,11 +229,11 @@ class NotificationService {
           channelKey: prayerChannelKey,
           title: title,
           body: body,
-          category: NotificationCategory.Reminder,
+          category: NotificationCategory.Alarm,
           notificationLayout: NotificationLayout.Default,
-          wakeUpScreen: false,
-          fullScreenIntent: false,
-          criticalAlert: false,
+          wakeUpScreen: true,
+          fullScreenIntent: true,
+          criticalAlert: true,
           autoDismissible: true,
           displayOnForeground: true,
           displayOnBackground: true,
@@ -224,11 +266,7 @@ class NotificationService {
 
   Future<void> cancelAllNotifications() async {
     try {
-      await AwesomeNotifications().cancel(fajrNotificationId);
-      await AwesomeNotifications().cancel(dhuhrNotificationId);
-      await AwesomeNotifications().cancel(asrNotificationId);
-      await AwesomeNotifications().cancel(maghribNotificationId);
-      await AwesomeNotifications().cancel(ishaNotificationId);
+      await AwesomeNotifications().cancelAllSchedules();
     } catch (e) {
       debugPrint('❌ Error cancelling notifications: $e');
     }

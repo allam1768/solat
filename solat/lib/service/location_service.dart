@@ -8,6 +8,7 @@ class LocationResult {
   final double? longitude;
   final String cityName;
   final String provinceName;
+  final String isoCountryCode;
   final String errorMessage;
   final bool hasError;
 
@@ -16,6 +17,7 @@ class LocationResult {
     this.longitude,
     this.cityName = '',
     this.provinceName = '',
+    this.isoCountryCode = '',
     this.errorMessage = '',
     this.hasError = false,
   });
@@ -81,12 +83,14 @@ class LocationService extends GetxService {
 
       String city = 'city_not_found';
       String province = '';
+      String countryCode = '';
 
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
         city = place.subAdministrativeArea ?? place.locality ?? 'City not found';
         province = place.administrativeArea ?? '';
-        debugPrint('📍 Location found: $city, $province');
+        countryCode = place.isoCountryCode ?? '';
+        debugPrint('📍 Location found: $city, $province ($countryCode)');
       }
 
       return LocationResult(
@@ -94,6 +98,7 @@ class LocationService extends GetxService {
         longitude: position.longitude,
         cityName: city,
         provinceName: province,
+        isoCountryCode: countryCode,
         hasError: false,
       );
 

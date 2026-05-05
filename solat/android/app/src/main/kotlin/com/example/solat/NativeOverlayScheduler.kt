@@ -94,14 +94,14 @@ object NativeOverlayScheduler {
                     nextPrayerTime = isha
                 )
 
-                // Isya: 30 menit setelah Isya
+                // Isya: 60 menit setelah Isya
                 scheduleSingleOverlay(
                     context = context,
                     requestCode = REQ_ISYA,
                     baseTime = isha,
-                    offsetMinutes = 30,
+                    offsetMinutes = 60,
                     prayerName = "Isya",
-                    message = "It has been 30 minutes since Isha started.\nPlease pray Isha soon.",
+                    message = "It has been 60 minutes since Isha started.\nPlease pray Isha soon.",
                     nextPrayerName = "Subuh",
                     nextPrayerTime = fajr
                 )

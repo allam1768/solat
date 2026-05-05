@@ -1,3 +1,6 @@
+import 'package:adhan/adhan.dart';
+import 'package:intl/intl.dart';
+
 class PrayerTimeModel {
   final String fajr;
   final String sunrise;
@@ -33,6 +36,21 @@ class PrayerTimeModel {
       asr: cleanTime(timings['Asr'] ?? '--:--'),
       maghrib: cleanTime(timings['Maghrib'] ?? '--:--'),
       isha: cleanTime(timings['Isha'] ?? '--:--'),
+    );
+  }
+
+  factory PrayerTimeModel.fromAdhan(PrayerTimes times) {
+    String formatTime(DateTime time) {
+      return DateFormat('HH:mm').format(time);
+    }
+    
+    return PrayerTimeModel(
+      fajr: formatTime(times.fajr),
+      sunrise: formatTime(times.sunrise),
+      dhuhr: formatTime(times.dhuhr),
+      asr: formatTime(times.asr),
+      maghrib: formatTime(times.maghrib),
+      isha: formatTime(times.isha),
     );
   }
 

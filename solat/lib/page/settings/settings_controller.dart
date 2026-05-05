@@ -117,9 +117,8 @@ class SettingsController extends GetxController {
       debugPrint('HomeController not found: $e');
     }
 
-    String profileName = 'Smart';
-    if (index == 0) profileName = 'Gentle';
-    if (index == 2) profileName = 'Guardian';
+    String profileName = 'Basic';
+    if (index == 1) profileName = 'Smart';
 
     showToast('$profileName mode activated');
   }

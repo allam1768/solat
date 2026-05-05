@@ -15,15 +15,12 @@ class AppTranslations extends Translations {
           'setup_permissions': 'Tap to setup missing permissions for reminders to work properly.',
           
           // Profiles
-          'gentle': 'GENTLE',
-          'softer_alerts': 'SOFTER ALERTS',
-          'gentle_desc': 'Adhan notifications at the start of prayer time. Ideal for the disciplined.',
+          'basic': 'BASIC',
+          'basic_subtitle': 'ESSENTIAL ALERTS',
+          'basic_desc': 'Adhan notifications at start, +30m, and -30m before prayer time ends.',
           'smart': 'SMART',
-          'balanced_system': 'BALANCED SYSTEM',
-          'smart_desc': 'Standard Adhan plus aggressive overlays during the final 30 minutes.',
-          'guardian': 'GUARDIAN',
-          'strict_adherence': 'STRICT ADHERENCE',
-          'guardian_desc': 'No initial alerts. Persistent full-screen overlays for maximum priority.',
+          'balanced_system': 'SMART SYSTEM',
+          'smart_desc': 'Adhan notifications at start, +30m, and aggressive overlays during the final 30 minutes.',
           'recommended': 'RECOMMENDED',
 
           // Home
@@ -80,15 +77,12 @@ class AppTranslations extends Translations {
           'setup_permissions': 'Ketuk untuk mengatur izin yang kurang agar pengingat berjalan lancar.',
           
           // Profiles
-          'gentle': 'GENTLE',
-          'softer_alerts': 'PENGINGAT HALUS',
-          'gentle_desc': 'Notifikasi Adzan di awal waktu sholat. Cocok untuk yang sudah disiplin.',
+          'basic': 'BASIC',
+          'basic_subtitle': 'PENGINGAT DASAR',
+          'basic_desc': 'Notifikasi di awal waktu, +30 menit, dan -30 menit sebelum waktu habis.',
           'smart': 'SMART',
-          'balanced_system': 'SISTEM SEIMBANG',
-          'smart_desc': 'Adzan standar ditambah overlay agresif di 30 menit terakhir.',
-          'guardian': 'GUARDIAN',
-          'strict_adherence': 'KEPATUHAN KETAT',
-          'guardian_desc': 'Tanpa notifikasi awal. Overlay layar penuh persisten untuk prioritas maksimal.',
+          'balanced_system': 'SISTEM PINTAR',
+          'smart_desc': 'Notifikasi di awal waktu, +30 menit, dan overlay agresif di 30 menit terakhir.',
           'recommended': 'REKOMENDASI',
 
           // Home

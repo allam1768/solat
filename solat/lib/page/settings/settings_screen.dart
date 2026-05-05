@@ -261,9 +261,9 @@ class SettingsScreen extends GetView<SettingsController> {
       children: [
         _buildProfileCard(
           index: 0,
-          title: 'gentle'.tr,
-          subtitle: 'softer_alerts'.tr,
-          description: 'gentle_desc'.tr,
+          title: 'basic'.tr,
+          subtitle: 'basic_subtitle'.tr,
+          description: 'basic_desc'.tr,
           isDark: isDark,
         ),
         SizedBox(height: 12.h),
@@ -273,14 +273,6 @@ class SettingsScreen extends GetView<SettingsController> {
           subtitle: 'balanced_system'.tr,
           description: 'smart_desc'.tr,
           isRecommended: true,
-          isDark: isDark,
-        ),
-        SizedBox(height: 12.h),
-        _buildProfileCard(
-          index: 2,
-          title: 'guardian'.tr,
-          subtitle: 'strict_adherence'.tr,
-          description: 'guardian_desc'.tr,
           isDark: isDark,
         ),
       ],
