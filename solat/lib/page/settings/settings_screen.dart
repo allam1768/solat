@@ -87,7 +87,6 @@ class SettingsScreen extends GetView<SettingsController> {
               _buildSectionHeader('support_feedback'.tr, isDark),
               SizedBox(height: 12.h),
               _buildFeedbackCard(context, isDark),
-              SizedBox(height: 40.h), // Extra space at bottom
             ],
           ),
         ),
@@ -439,7 +438,8 @@ class SettingsScreen extends GetView<SettingsController> {
                 SizedBox(height: 2.h),
                 Obx(() {
                   String langName = 'English';
-                  if (controller.languageCode.value == 'id') langName = 'Bahasa Indonesia';
+                  if (controller.languageCode.value == 'id')
+                    langName = 'Bahasa Indonesia';
                   return Text(
                     langName,
                     style: TextStyle(

@@ -21,7 +21,8 @@ class NotificationService {
 
   static const String prayerChannelKey = 'prayer_times_channel';
   static const String prayerChannelName = 'Prayer Times';
-  static const String prayerChannelDescription = 'Notifications for daily prayer times';
+  static const String prayerChannelDescription =
+      'Notifications for daily prayer times';
 
   // Check if notification is enabled
   bool isNotificationEnabled() {
@@ -51,7 +52,8 @@ class NotificationService {
             channelKey: prayerChannelKey,
             channelName: prayerChannelName,
             channelDescription: prayerChannelDescription,
-            importance: NotificationImportance.Max, // ✅ HARUS Max untuk heads-up
+            importance:
+                NotificationImportance.Max, // ✅ HARUS Max untuk heads-up
             channelShowBadge: true,
             playSound: true,
             defaultRingtoneType: DefaultRingtoneType.Notification,
@@ -65,7 +67,8 @@ class NotificationService {
 
       // Permission is requested in Onboarding
 
-      debugPrint('✅ NotificationService initialized (without permission request)');
+      debugPrint(
+          '✅ NotificationService initialized (without permission request)');
     } catch (e) {
       debugPrint('❌ Error initializing NotificationService: $e');
     }
@@ -77,7 +80,8 @@ class NotificationService {
       bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
 
       if (!isAllowed) {
-        isAllowed = await AwesomeNotifications().requestPermissionToSendNotifications();
+        isAllowed =
+            await AwesomeNotifications().requestPermissionToSendNotifications();
       }
 
       if (!isAllowed) {
@@ -102,7 +106,8 @@ class NotificationService {
     required String ishaTime,
   }) async {
     try {
-      final profile = _storage.read('reminderProfile') ?? 1; // 0 = Basic, 1 = Smart
+      final profile =
+          _storage.read('reminderProfile') ?? 1; // 0 = Basic, 1 = Smart
 
       // Check if notifications are enabled
       if (!isNotificationEnabled()) {
@@ -127,7 +132,7 @@ class NotificationService {
         // 1. Start Time
         await _schedulePrayerNotification(
           id: baseId + 1,
-          title: '🕌 $title Time',
+          title: ' $title Time',
           body: 'It\'s time for $title prayer.',
           time: startTime,
         );
@@ -137,7 +142,7 @@ class NotificationService {
         if (plus30Time != null) {
           await _schedulePrayerNotification(
             id: baseId + 2,
-            title: '🕌 $title Reminder',
+            title: ' $title Reminder',
             body: '30 minutes have passed since $title started.',
             time: plus30Time,
           );
@@ -150,17 +155,20 @@ class NotificationService {
             if (plus60Time != null) {
               await _schedulePrayerNotification(
                 id: baseId + 3,
-                title: '🕌 $title Ending Soon',
-                body: 'It has been 60 minutes since $title started. Please pray Isha soon.',
+                title: ' $title Ending Soon',
+                body:
+                    'It has been 60 minutes since $title started. Please pray Isha soon.',
                 time: plus60Time,
               );
             }
-          } else if (endTime != null && endTime != '--:--' && endTime != 'Error') {
+          } else if (endTime != null &&
+              endTime != '--:--' &&
+              endTime != 'Error') {
             final minus30Time = _addMinutes(endTime, -30);
             if (minus30Time != null) {
               await _schedulePrayerNotification(
                 id: baseId + 3,
-                title: '🕌 $title Ending Soon',
+                title: ' $title Ending Soon',
                 body: 'Only 30 minutes left for $title prayer.',
                 time: minus30Time,
               );
@@ -170,11 +178,31 @@ class NotificationService {
       }
 
       // Jadwalkan untuk setiap waktu sholat
-      await scheduleForPrayer(baseId: fajrBaseId, title: 'Fajr', startTime: fajrTime, endTime: sunriseTime);
-      await scheduleForPrayer(baseId: dhuhrBaseId, title: 'Dhuhr', startTime: dhuhrTime, endTime: asrTime);
-      await scheduleForPrayer(baseId: asrBaseId, title: 'Asr', startTime: asrTime, endTime: maghribTime);
-      await scheduleForPrayer(baseId: maghribBaseId, title: 'Maghrib', startTime: maghribTime, endTime: ishaTime);
-      await scheduleForPrayer(baseId: ishaBaseId, title: 'Isha', startTime: ishaTime, endTime: null);
+      await scheduleForPrayer(
+          baseId: fajrBaseId,
+          title: 'Fajr',
+          startTime: fajrTime,
+          endTime: sunriseTime);
+      await scheduleForPrayer(
+          baseId: dhuhrBaseId,
+          title: 'Dhuhr',
+          startTime: dhuhrTime,
+          endTime: asrTime);
+      await scheduleForPrayer(
+          baseId: asrBaseId,
+          title: 'Asr',
+          startTime: asrTime,
+          endTime: maghribTime);
+      await scheduleForPrayer(
+          baseId: maghribBaseId,
+          title: 'Maghrib',
+          startTime: maghribTime,
+          endTime: ishaTime);
+      await scheduleForPrayer(
+          baseId: ishaBaseId,
+          title: 'Isha',
+          startTime: ishaTime,
+          endTime: null);
 
       await checkPendingNotifications();
     } catch (e) {
@@ -187,16 +215,16 @@ class NotificationService {
     if (time.isEmpty || time == '--:--' || time == 'Error') return null;
     final parts = time.split(':');
     if (parts.length != 2) return null;
-    
+
     int hour = int.parse(parts[0]);
     int minute = int.parse(parts[1]);
-    
+
     int totalMinutes = hour * 60 + minute + minutesToAdd;
     if (totalMinutes < 0) totalMinutes += 24 * 60; // mundur ke hari sebelumnya
-    
+
     int newHour = (totalMinutes ~/ 60) % 24;
     int newMinute = totalMinutes % 60;
-    
+
     return '${newHour.toString().padLeft(2, '0')}:${newMinute.toString().padLeft(2, '0')}';
   }
 
@@ -229,10 +257,10 @@ class NotificationService {
           channelKey: prayerChannelKey,
           title: title,
           body: body,
-          category: NotificationCategory.Alarm,
+          category: NotificationCategory.Reminder,
           notificationLayout: NotificationLayout.Default,
           wakeUpScreen: true,
-          fullScreenIntent: true,
+          fullScreenIntent: false,
           criticalAlert: true,
           autoDismissible: true,
           displayOnForeground: true,
@@ -282,14 +310,16 @@ class NotificationService {
 
   Future<void> checkPendingNotifications() async {
     try {
-      final scheduledNotifications = await AwesomeNotifications().listScheduledNotifications();
+      final scheduledNotifications =
+          await AwesomeNotifications().listScheduledNotifications();
 
       if (scheduledNotifications.isEmpty) {
         debugPrint('⚠️ No scheduled notifications found.');
         return;
       }
 
-      debugPrint('📋 Total scheduled notifications: ${scheduledNotifications.length}');
+      debugPrint(
+          '📋 Total scheduled notifications: ${scheduledNotifications.length}');
     } catch (e) {
       debugPrint('❌ Error checking pending notifications: $e');
     }

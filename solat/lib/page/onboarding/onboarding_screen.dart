@@ -12,83 +12,103 @@ class OnboardingScreen extends GetView<OnboardingController> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: PageView(
-          controller: controller.pageController,
-          onPageChanged: controller.onPageChanged,
-          physics: const NeverScrollableScrollPhysics(),
+        child: Stack(
           children: [
-            _buildWelcomePage(),
-            _buildPermissionPage(
-              pageIndex: 1,
-              icon: Icons.notifications_active_outlined,
-              title: 'Prayer Notifications',
-              subtitle: 'Receive timely alerts for all five daily prayers',
-              feature1Icon: Icons.alarm,
-              feature1Title: 'Never miss a prayer',
-              feature1Subtitle: 'Get notified before each prayer time',
-              permissionLabel: 'Notification Permission',
-              isGrantedRx: controller.hasNotificationPermission,
-              isLoadingRx: controller.isRequestingNotification,
-              onRequest: controller.requestNotificationPermission,
-              actionLabel: 'Enable Notifications',
+            PageView(
+              controller: controller.pageController,
+              onPageChanged: controller.onPageChanged,
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                _buildWelcomePage(),
+                _buildPermissionPage(
+                  pageIndex: 1,
+                  icon: Icons.notifications_active_outlined,
+                  title: 'Prayer Notifications',
+                  subtitle: 'Receive timely alerts for all five daily prayers',
+                  feature1Icon: Icons.alarm,
+                  feature1Title: 'Never miss a prayer',
+                  feature1Subtitle: 'Get notified before each prayer time',
+                  permissionLabel: 'Notification Permission',
+                  isGrantedRx: controller.hasNotificationPermission,
+                  isLoadingRx: controller.isRequestingNotification,
+                  onRequest: controller.requestNotificationPermission,
+                  actionLabel: 'Enable Notifications',
+                ),
+                _buildPermissionPage(
+                  pageIndex: 2,
+                  icon: Icons.location_on_outlined,
+                  title: 'Location Access',
+                  subtitle:
+                      'We need your location to calculate accurate prayer times for your area',
+                  feature1Icon: Icons.my_location,
+                  feature1Title: 'Accurate prayer times',
+                  feature1Subtitle:
+                      'Get precise timings based on your location',
+                  feature2Icon: Icons.update,
+                  feature2Title: 'Auto-update',
+                  feature2Subtitle:
+                      'Prayer times adjust automatically when you travel',
+                  permissionLabel: 'Location Permission',
+                  isGrantedRx: controller.hasLocationPermission,
+                  isLoadingRx: controller.isRequestingLocation,
+                  onRequest: controller.requestLocationPermission,
+                  actionLabel: 'Grant Location Access',
+                ),
+                _buildPermissionPage(
+                  pageIndex: 3,
+                  icon: Icons.battery_charging_full,
+                  title: 'Battery Optimization',
+                  subtitle:
+                      'Disable battery optimization to ensure reminders work even when the app is closed',
+                  feature1Icon: Icons.access_time,
+                  feature1Title: 'Reliable reminders',
+                  feature1Subtitle:
+                      'Prayer alerts will work even in background',
+                  feature2Icon: Icons.battery_saver,
+                  feature2Title: 'Optimized performance',
+                  feature2Subtitle:
+                      'Minimal battery usage while staying active',
+                  permissionLabel: 'Battery Exemption',
+                  isGrantedRx: controller.hasBatteryExemption,
+                  isLoadingRx: controller.isRequestingBattery,
+                  onRequest: controller.requestBatteryExemption,
+                  actionLabel: 'Disable Optimization',
+                ),
+                _buildPermissionPage(
+                  pageIndex: 4,
+                  icon: Icons.layers_outlined,
+                  title: 'Display Over Apps',
+                  subtitle:
+                      'This permission allows us to show prayer reminders even when you\'re using other apps',
+                  feature1Icon: Icons.phone_android,
+                  feature1Title: 'Works on any screen',
+                  feature1Subtitle:
+                      'Get reminders while browsing, gaming, or watching videos',
+                  feature2Icon: Icons.touch_app,
+                  feature2Title: 'Quick action',
+                  feature2Subtitle: 'Mark prayer as done with one tap',
+                  permissionLabel: 'Overlay Permission',
+                  isGrantedRx: controller.hasOverlayPermission,
+                  isLoadingRx: controller.isRequestingOverlay,
+                  onRequest: controller.requestOverlayPermission,
+                  actionLabel: 'Grant Permission',
+                ),
+                _buildCompletePage(),
+              ],
             ),
-            _buildPermissionPage(
-              pageIndex: 2,
-              icon: Icons.location_on_outlined,
-              title: 'Location Access',
-              subtitle:
-                  'We need your location to calculate accurate prayer times for your area',
-              feature1Icon: Icons.my_location,
-              feature1Title: 'Accurate prayer times',
-              feature1Subtitle: 'Get precise timings based on your location',
-              feature2Icon: Icons.update,
-              feature2Title: 'Auto-update',
-              feature2Subtitle:
-                  'Prayer times adjust automatically when you travel',
-              permissionLabel: 'Location Permission',
-              isGrantedRx: controller.hasLocationPermission,
-              isLoadingRx: controller.isRequestingLocation,
-              onRequest: controller.requestLocationPermission,
-              actionLabel: 'Grant Location Access',
-            ),
-            _buildPermissionPage(
-              pageIndex: 3,
-              icon: Icons.battery_charging_full,
-              title: 'Battery Optimization',
-              subtitle:
-                  'Disable battery optimization to ensure reminders work even when the app is closed',
-              feature1Icon: Icons.access_time,
-              feature1Title: 'Reliable reminders',
-              feature1Subtitle: 'Prayer alerts will work even in background',
-              feature2Icon: Icons.battery_saver,
-              feature2Title: 'Optimized performance',
-              feature2Subtitle: 'Minimal battery usage while staying active',
-              permissionLabel: 'Battery Exemption',
-              isGrantedRx: controller.hasBatteryExemption,
-              isLoadingRx: controller.isRequestingBattery,
-              onRequest: controller.requestBatteryExemption,
-              actionLabel: 'Disable Optimization',
-            ),
-            _buildPermissionPage(
-              pageIndex: 4,
-              icon: Icons.layers_outlined,
-              title: 'Display Over Apps',
-              subtitle:
-                  'This permission allows us to show prayer reminders even when you\'re using other apps',
-              feature1Icon: Icons.phone_android,
-              feature1Title: 'Works on any screen',
-              feature1Subtitle:
-                  'Get reminders while browsing, gaming, or watching videos',
-              feature2Icon: Icons.touch_app,
-              feature2Title: 'Quick action',
-              feature2Subtitle: 'Mark prayer as done with one tap',
-              permissionLabel: 'Overlay Permission',
-              isGrantedRx: controller.hasOverlayPermission,
-              isLoadingRx: controller.isRequestingOverlay,
-              onRequest: controller.requestOverlayPermission,
-              actionLabel: 'Grant Permission',
-            ),
-            _buildCompletePage(),
+            Obx(() {
+              if (controller.currentPage.value > 0 &&
+                  controller.currentPage.value < 5) {
+                return Positioned(
+                  top: 24.w + 40.h,
+                  left: 0,
+                  right: 0,
+                  child:
+                      _buildProgressIndicator(controller.currentPage.value, 4),
+                );
+              }
+              return const SizedBox.shrink();
+            }),
           ],
         ),
       ),
@@ -124,7 +144,7 @@ class OnboardingScreen extends GetView<OnboardingController> {
           ),
           SizedBox(height: 32.h),
           Text(
-            'Welcome to Solat',
+            'Welcome to Salat',
             style: TextStyle(
               fontSize: 28.sp,
               fontWeight: FontWeight.bold,
@@ -172,7 +192,7 @@ class OnboardingScreen extends GetView<OnboardingController> {
       child: Column(
         children: [
           SizedBox(height: 40.h),
-          _buildProgressIndicator(pageIndex, 4),
+          SizedBox(height: 8.h), // Placeholder for static progress indicator
           SizedBox(height: 40.h),
           Container(
             width: 100.w,
@@ -280,7 +300,7 @@ class OnboardingScreen extends GetView<OnboardingController> {
 
             return Text(
               allGranted
-                  ? 'You\'re ready to start using Solat!\nNever miss a prayer time again.'
+                  ? 'You\'re ready to start using Salat!\nNever miss a prayer time again.'
                   : 'You can start using the app now.\nSome features may require additional permissions.',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -316,7 +336,7 @@ class OnboardingScreen extends GetView<OnboardingController> {
               )),
           const Spacer(),
           _buildPrimaryButton(
-              'Start Using Solat', () => controller.completeOnboarding()),
+              'Start Using Salat', () => controller.completeOnboarding()),
           SizedBox(height: 16.h),
         ],
       ),

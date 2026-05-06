@@ -28,6 +28,7 @@ dependencies:
   device_info_plus: ^13.0.0
   url_launcher: ^6.3.0
   adhan: ^2.0.0+1
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:
@@ -37,9 +38,10 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.1
 
 flutter_launcher_icons:
-  android: "launcher_icon"
+  android: true
   ios: true
   image_path: "assets/icons/logo_legacy.png"
+  remove_alpha_ios: true
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/icons/logo_foreground.png"
 

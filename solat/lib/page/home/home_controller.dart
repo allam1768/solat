@@ -138,23 +138,6 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> handleLocationTap() async {
-    final isDark = Get.isDarkMode;
-
-    // Show a premium adaptive snackbar
-    Get.snackbar(
-      'Location',
-      'Searching for your current position...',
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: isDark ? Colors.white : Colors.black,
-      colorText: isDark ? Colors.black : Colors.white,
-      borderRadius: 10,
-      margin: const EdgeInsets.all(15),
-      borderWidth: 1.5,
-      borderColor: isDark ? Colors.black : Colors.white,
-      duration: const Duration(seconds: 2),
-      icon: Icon(Icons.location_searching,
-          color: isDark ? Colors.black : Colors.white, size: 20),
-    );
 
     if (locationError.value.isEmpty) {
       await refreshLocation();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:shimmer/shimmer.dart';
 import '../home_controller.dart';
 
 class LocationCard extends GetView<HomeController> {
@@ -31,13 +32,32 @@ class LocationCard extends GetView<HomeController> {
               child: Center(
                 child: Obx(() {
                   if (controller.isLoadingLocation.value) {
-                    return SizedBox(
-                      width: 20.w,
-                      height: 20.h,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: colorScheme.primary,
-                      ),
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Shimmer.fromColors(
+                          baseColor: colorScheme.onSurface.withOpacity(0.1),
+                          highlightColor: colorScheme.onSurface.withOpacity(0.3),
+                          child: Icon(
+                            Icons.location_on_outlined,
+                            size: 26.sp,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        SizedBox(width: 12.w),
+                        Shimmer.fromColors(
+                          baseColor: colorScheme.onSurface.withOpacity(0.1),
+                          highlightColor: colorScheme.onSurface.withOpacity(0.3),
+                          child: Container(
+                            height: 20.h,
+                            width: 120.w,
+                            decoration: BoxDecoration(
+                              color: colorScheme.onSurface,
+                              borderRadius: BorderRadius.circular(4.r),
+                            ),
+                          ),
+                        ),
+                      ],
                     );
                   }
 
