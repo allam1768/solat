@@ -33,6 +33,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   var maghribTime = '--:--'.obs;
   var ishaTime = '--:--'.obs;
   var isLoadingPrayer = true.obs;
+  var isFriday = false.obs;
 
   var currentPrayerKey = ''.obs;
   DateTime? _lastFetchTime;
@@ -252,6 +253,10 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     
     currentDay.value = DateFormat('EEEE', locale).format(now);
     currentDate.value = DateFormat('d MMMM yyyy', locale).format(now);
+    
+    // Update isFriday
+    isFriday.value = now.weekday == DateTime.friday;
+    
     _checkCurrentPrayer();
   }
 

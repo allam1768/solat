@@ -60,27 +60,15 @@ class SettingsScreen extends GetView<SettingsController> {
               SizedBox(height: 12.h),
               _buildLanguageCard(context, isDark),
 
+              // Friday Reminder Setting
+              SizedBox(height: 12.h),
+              _buildFridayReminderCard(context, isDark),
+
               // ============ SMART REMINDER SECTION ============
               SizedBox(height: 30.h),
               _buildSectionHeader('smart_reminder'.tr, isDark),
               SizedBox(height: 12.h),
               _buildSmartReminderCards(context, isDark),
-
-              // Device Specific Information
-              Obx(() {
-                if (controller.isProblematicDevice.value) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 20.h),
-                      _buildSectionHeader('device_specific'.tr, isDark),
-                      SizedBox(height: 12.h),
-                      _buildDeviceWarningCard(context, isDark),
-                    ],
-                  );
-                }
-                return const SizedBox.shrink();
-              }),
 
               // ============ SUPPORT SECTION ============
               SizedBox(height: 30.h),
@@ -246,6 +234,78 @@ class SettingsScreen extends GetView<SettingsController> {
           Obx(() => Switch.adaptive(
                 value: controller.isDarkTheme.value,
                 onChanged: controller.toggleTheme,
+                activeColor: Colors.black,
+                activeTrackColor: Colors.grey.shade400,
+              )),
+        ],
+      ),
+    );
+  }
+
+  // Friday Reminder Card
+  Widget _buildFridayReminderCard(BuildContext context, bool isDark) {
+    final fgColor = isDark ? Colors.white : Colors.black;
+    final cardColor = isDark ? Colors.black : Colors.white;
+    final borderColor = isDark ? Colors.white30 : Colors.black12;
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(15.r),
+        border: Border.all(
+          color: borderColor,
+          width: 1.w,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(10.w),
+            decoration: BoxDecoration(
+              color: fgColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Icon(
+              Icons.mosque_rounded,
+              size: 20.sp,
+              color: fgColor,
+            ),
+          ),
+          SizedBox(width: 16.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'friday_reminder'.tr,
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w600,
+                    color: fgColor,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  'friday_reminder_desc'.tr,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: fgColor.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Obx(() => Switch.adaptive(
+                value: controller.fridayReminderEnabled.value,
+                onChanged: controller.toggleFridayReminder,
                 activeColor: Colors.black,
                 activeTrackColor: Colors.grey.shade400,
               )),
@@ -525,65 +585,6 @@ class SettingsScreen extends GetView<SettingsController> {
         ),
       );
     });
-  }
-
-  // Device Warning Card - Black & White Theme
-  Widget _buildDeviceWarningCard(BuildContext context, bool isDark) {
-    final fgColor = isDark ? Colors.white : Colors.black;
-    final cardColor = isDark ? Colors.black : Colors.white;
-    final borderColor = isDark ? Colors.white30 : Colors.black12;
-
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(
-          color: borderColor,
-          width: 1.w,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.phonelink_setup,
-            color: fgColor,
-            size: 24.sp,
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Device: ${controller.deviceManufacturer.value}',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: fgColor,
-                  ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  'Your device may need special settings to run properly in the background.',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: fgColor.withValues(alpha: 0.6),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   // Feedback Card - Black & White Theme

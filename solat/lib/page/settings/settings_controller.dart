@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter/material.dart';
@@ -22,9 +24,11 @@ class SettingsController extends GetxController {
   var hasBatteryExemption = false.obs; // âœ… NEW
   var isRequestingPermission = false.obs;
   var isDarkTheme = false.obs;
+  var fridayReminderEnabled = true.obs; // NEW
   var reminderProfile = 1.obs; // Default to SMART (1)
   var languageCode = 'en'.obs;
   var testAttempt = 0.obs;
+  Timer? _debounceTimer; // NEW: Debounce for anti-spam
 
   // âœ… OEM Info
   var deviceManufacturer = 'Unknown'.obs;
@@ -41,6 +45,8 @@ class SettingsController extends GetxController {
   Future<void> _loadSettings() async {
     notificationEnabled.value = _notificationService.isNotificationEnabled();
     isDarkTheme.value = _storage.read('isDarkTheme') ?? false;
+    fridayReminderEnabled.value =
+        _storage.read(NotificationService.fridayReminderEnabledKey) ?? true;
     reminderProfile.value = _storage.read('reminderProfile') ?? 1;
     languageCode.value = _storage.read('languageCode') ?? 'en';
   }
@@ -61,14 +67,29 @@ class SettingsController extends GetxController {
   }
 
   // âœ… Load device info
+  // ✅ Load device info
   Future<void> _loadDeviceInfo() async {
     final oemInfo = await _permissionHelper.getOEMInfo();
     deviceManufacturer.value = oemInfo.deviceName;
     isProblematicDevice.value = oemInfo.isProblematic;
 
     if (oemInfo.isProblematic) {
-      debugPrint('âš ï¸ Problematic device detected: ${oemInfo.manufacturer}');
+      debugPrint('⚠️ Problematic device detected: ${oemInfo.manufacturer}');
     }
+  }
+
+  // ✅ Anti-Spam Debounce Helper
+  void _debouncedRefresh() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 1500), () async {
+      debugPrint('⚛️ Executing debounced background refresh...');
+      try {
+        final homeController = Get.find<HomeController>();
+        await homeController.refreshLocation();
+      } catch (e) {
+        debugPrint('HomeController not found during refresh: $e');
+      }
+    });
   }
 
   void showToast(String message) {
@@ -86,16 +107,22 @@ class SettingsController extends GetxController {
     notificationEnabled.value = value;
     await _notificationService.setNotificationEnabled(value);
 
-    try {
-      final homeController = Get.find<HomeController>();
-      await homeController.refreshLocation();
-    } catch (e) {
-      debugPrint('HomeController not found: $e');
-    }
+    _debouncedRefresh();
 
     showToast(value
         ? 'Prayer notifications enabled'
         : 'Prayer notifications disabled');
+  }
+
+  Future<void> toggleFridayReminder(bool value) async {
+    fridayReminderEnabled.value = value;
+    await _storage.write(NotificationService.fridayReminderEnabledKey, value);
+
+    _debouncedRefresh();
+
+    showToast(value
+        ? 'Friday preparation reminders enabled'
+        : 'Friday preparation reminders disabled');
   }
 
   Future<void> toggleTheme(bool value) async {
@@ -106,16 +133,12 @@ class SettingsController extends GetxController {
   }
 
   Future<void> setReminderProfile(int index) async {
+    if (reminderProfile.value == index) return; // Ignore if same
+
     reminderProfile.value = index;
     await _storage.write('reminderProfile', index);
 
-    // Refresh schedules
-    try {
-      final homeController = Get.find<HomeController>();
-      await homeController.refreshLocation();
-    } catch (e) {
-      debugPrint('HomeController not found: $e');
-    }
+    _debouncedRefresh();
 
     String profileName = 'Basic';
     if (index == 1) profileName = 'Smart';

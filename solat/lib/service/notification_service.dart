@@ -11,6 +11,7 @@ class NotificationService {
 
   // Storage key for notification enable/disable
   static const String notificationEnabledKey = 'notification_enabled';
+  static const String fridayReminderEnabledKey = 'friday_reminder_enabled';
 
   // Notification ID bases
   static const int fajrBaseId = 100;
@@ -108,6 +109,9 @@ class NotificationService {
     try {
       final profile =
           _storage.read('reminderProfile') ?? 1; // 0 = Basic, 1 = Smart
+      final isFridayReminderEnabled = 
+          _storage.read(fridayReminderEnabledKey) ?? true;
+      final isFriday = DateTime.now().weekday == DateTime.friday;
 
       // Check if notifications are enabled
       if (!isNotificationEnabled()) {
@@ -130,12 +134,45 @@ class NotificationService {
         if (startTime == '--:--' || startTime == 'Error') return;
 
         // 1. Start Time
+        String finalTitle = title;
+        String finalBody = 'It\'s time for $title prayer.';
+
+        if (isFriday && title == 'Dhuhr') {
+          finalTitle = 'Friday Prayer'; // or use localization if possible, but title is usually String
+          finalBody = 'It\'s time for Friday prayer.';
+        }
+
         await _schedulePrayerNotification(
           id: baseId + 1,
-          title: ' $title Time',
-          body: 'It\'s time for $title prayer.',
+          title: ' $finalTitle Time',
+          body: finalBody,
           time: startTime,
         );
+
+        // Friday Preparation Reminders
+        if (isFriday && title == 'Dhuhr' && isFridayReminderEnabled) {
+          // -50 Minutes
+          final minus50Time = _addMinutes(startTime, -50);
+          if (minus50Time != null) {
+            await _schedulePrayerNotification(
+              id: baseId + 4, // unique ID for Friday -50m
+              title: ' Friday Preparation (50m)',
+              body: '50 minutes until Friday prayer. Let\'s get ready!',
+              time: minus50Time,
+            );
+          }
+
+          // -30 Minutes
+          final minus30PrepTime = _addMinutes(startTime, -30);
+          if (minus30PrepTime != null) {
+            await _schedulePrayerNotification(
+              id: baseId + 5, // unique ID for Friday -30m
+              title: ' Friday Preparation (30m)',
+              body: '30 minutes until Friday prayer. Time to go to the mosque!',
+              time: minus30PrepTime,
+            );
+          }
+        }
 
         // 2. +30 Minutes
         final plus30Time = _addMinutes(startTime, 30);

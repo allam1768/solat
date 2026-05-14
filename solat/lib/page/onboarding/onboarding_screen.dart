@@ -20,8 +20,9 @@ class OnboardingScreen extends GetView<OnboardingController> {
               physics: const NeverScrollableScrollPhysics(),
               children: [
                 _buildWelcomePage(),
+                _buildGenderPage(),
                 _buildPermissionPage(
-                  pageIndex: 1,
+                  pageIndex: 2,
                   icon: Icons.notifications_active_outlined,
                   title: 'Prayer Notifications',
                   subtitle: 'Receive timely alerts for all five daily prayers',
@@ -35,7 +36,7 @@ class OnboardingScreen extends GetView<OnboardingController> {
                   actionLabel: 'Enable Notifications',
                 ),
                 _buildPermissionPage(
-                  pageIndex: 2,
+                  pageIndex: 3,
                   icon: Icons.location_on_outlined,
                   title: 'Location Access',
                   subtitle:
@@ -55,7 +56,7 @@ class OnboardingScreen extends GetView<OnboardingController> {
                   actionLabel: 'Grant Location Access',
                 ),
                 _buildPermissionPage(
-                  pageIndex: 3,
+                  pageIndex: 4,
                   icon: Icons.battery_charging_full,
                   title: 'Battery Optimization',
                   subtitle:
@@ -75,7 +76,7 @@ class OnboardingScreen extends GetView<OnboardingController> {
                   actionLabel: 'Disable Optimization',
                 ),
                 _buildPermissionPage(
-                  pageIndex: 4,
+                  pageIndex: 5,
                   icon: Icons.layers_outlined,
                   title: 'Display Over Apps',
                   subtitle:
@@ -98,13 +99,13 @@ class OnboardingScreen extends GetView<OnboardingController> {
             ),
             Obx(() {
               if (controller.currentPage.value > 0 &&
-                  controller.currentPage.value < 5) {
+                  controller.currentPage.value < 6) {
                 return Positioned(
                   top: 24.w + 40.h,
                   left: 0,
                   right: 0,
                   child:
-                      _buildProgressIndicator(controller.currentPage.value, 4),
+                      _buildProgressIndicator(controller.currentPage.value, 5),
                 );
               }
               return const SizedBox.shrink();
@@ -165,6 +166,112 @@ class OnboardingScreen extends GetView<OnboardingController> {
           _buildPrimaryButton('Get Started', () => controller.nextPage()),
           SizedBox(height: 16.h),
         ],
+      ),
+    );
+  }
+
+  // Page 1: Gender Selection
+  Widget _buildGenderPage() {
+    return Padding(
+      padding: EdgeInsets.all(24.w),
+      child: Column(
+        children: [
+          SizedBox(height: 100.h),
+          Text(
+            'Select Your Gender',
+            style: TextStyle(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            'This helps us personalize your experience',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: Colors.black54,
+            ),
+          ),
+          SizedBox(height: 48.h),
+          Row(
+            children: [
+              Expanded(
+                child: Obx(() => _buildGenderOption(
+                      'Male',
+                      Icons.male,
+                      controller.selectedGender.value == 'male',
+                      () => controller.selectedGender.value = 'male',
+                    )),
+              ),
+              SizedBox(width: 16.w),
+              Expanded(
+                child: Obx(() => _buildGenderOption(
+                      'Female',
+                      Icons.female,
+                      controller.selectedGender.value == 'female',
+                      () => controller.selectedGender.value = 'female',
+                    )),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Obx(() => _buildPrimaryButton(
+                'Continue',
+                controller.selectedGender.value.isEmpty
+                    ? null
+                    : () => controller.nextPage(),
+              )),
+          SizedBox(height: 12.h),
+          _buildSkipButton(),
+          SizedBox(height: 16.h),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGenderOption(
+      String label, IconData icon, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 24.h),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(
+            color: isSelected ? Colors.black : Colors.grey.shade300,
+            width: 2.w,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : [],
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 48.sp,
+              color: isSelected ? Colors.white : Colors.black54,
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? Colors.white : Colors.black87,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
