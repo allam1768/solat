@@ -1,5 +1,7 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
 class NotificationService {
@@ -8,6 +10,7 @@ class NotificationService {
   NotificationService._internal();
 
   final _storage = GetStorage();
+  static const platform = MethodChannel('solat/native_notification');
 
   // Storage key for notification enable/disable
   static const String notificationEnabledKey = 'notification_enabled';
@@ -124,6 +127,8 @@ class NotificationService {
       await cancelAllNotifications();
       await Future.delayed(const Duration(milliseconds: 300));
 
+      List<Map<String, dynamic>> nativeSchedules = [];
+
       // Helper to schedule a set of notifications for a prayer
       Future<void> scheduleForPrayer({
         required int baseId,
@@ -134,55 +139,70 @@ class NotificationService {
         if (startTime == '--:--' || startTime == 'Error') return;
 
         // 1. Start Time
-        String finalTitle = title;
-        String finalBody = 'It\'s time for $title prayer.';
+        String prayerKey = title.toLowerCase();
+        String translatedName = prayerKey.tr;
+        String finalTitle = translatedName;
+        String finalBody = Get.locale?.languageCode == 'id'
+            ? 'Sudah masuk waktu sholat $translatedName.'
+            : 'It\'s time for $translatedName prayer.';
 
         if (isFriday && title == 'Dhuhr') {
-          finalTitle = 'Friday Prayer'; // or use localization if possible, but title is usually String
-          finalBody = 'It\'s time for Friday prayer.';
+          finalTitle = 'friday_prayer'.tr;
+          finalBody = Get.locale?.languageCode == 'id'
+              ? 'Sudah masuk waktu sholat Jum\'at.'
+              : 'It\'s time for Friday prayer.';
         }
 
-        await _schedulePrayerNotification(
-          id: baseId + 1,
-          title: ' $finalTitle Time',
-          body: finalBody,
-          time: startTime,
-        );
+        nativeSchedules.add({
+          'id': baseId + 1,
+          'title': finalTitle,
+          'body': finalBody,
+          'time': startTime,
+        });
 
         // Friday Preparation Reminders
         if (isFriday && title == 'Dhuhr' && isFridayReminderEnabled) {
           // -50 Minutes
           final minus50Time = _addMinutes(startTime, -50);
           if (minus50Time != null) {
-            await _schedulePrayerNotification(
-              id: baseId + 4, // unique ID for Friday -50m
-              title: ' Friday Preparation (50m)',
-              body: '50 minutes until Friday prayer. Let\'s get ready!',
-              time: minus50Time,
-            );
+            nativeSchedules.add({
+              'id': baseId + 4,
+              'title': '${'friday_prep_title'.tr} (50m)',
+              'body': 'friday_prep_body'.tr,
+              'time': minus50Time,
+            });
           }
 
           // -30 Minutes
           final minus30PrepTime = _addMinutes(startTime, -30);
           if (minus30PrepTime != null) {
-            await _schedulePrayerNotification(
-              id: baseId + 5, // unique ID for Friday -30m
-              title: ' Friday Preparation (30m)',
-              body: '30 minutes until Friday prayer. Time to go to the mosque!',
-              time: minus30PrepTime,
-            );
+            nativeSchedules.add({
+              'id': baseId + 5,
+              'title': '${'friday_prep_title'.tr} (30m)',
+              'body': Get.locale?.languageCode == 'id'
+                  ? '30 menit lagi waktu Jumatan. Yuk berangkat ke Masjid!'
+                  : '30 minutes until Friday prayer. Time to go to the mosque!',
+              'time': minus30PrepTime,
+            });
           }
         }
 
         // 2. +30 Minutes
         final plus30Time = _addMinutes(startTime, 30);
         if (plus30Time != null) {
-          await _schedulePrayerNotification(
-            id: baseId + 2,
-            title: ' $title Reminder',
-            body: '30 minutes have passed since $title started.',
-            time: plus30Time,
-          );
+          String reminderTitle = Get.locale?.languageCode == 'id'
+              ? 'Pengingat $translatedName'
+              : '$translatedName Reminder';
+          String reminderBody = Get.locale?.languageCode == 'id'
+              ? 'Sudah 30 menit sejak waktu $translatedName dimulai.'
+              : '30 minutes have passed since $translatedName started.';
+
+          nativeSchedules.add({
+            'id': baseId + 2,
+            'title': reminderTitle,
+            'body': reminderBody,
+            'time': plus30Time,
+          });
         }
 
         // 3. -30 Minutes (Hanya jika profile == 0 / Basic Mode, dan endTime ada)
@@ -190,25 +210,38 @@ class NotificationService {
           if (title == 'Isha') {
             final plus60Time = _addMinutes(startTime, 60);
             if (plus60Time != null) {
-              await _schedulePrayerNotification(
-                id: baseId + 3,
-                title: ' $title Ending Soon',
-                body:
-                    'It has been 60 minutes since $title started. Please pray Isha soon.',
-                time: plus60Time,
-              );
+              String endingTitle = Get.locale?.languageCode == 'id'
+                  ? 'Waktu $translatedName Akan Habis'
+                  : '$translatedName Ending Soon';
+              String endingBody = Get.locale?.languageCode == 'id'
+                  ? 'Sudah 60 menit sejak $translatedName dimulai. Yuk sholat Isya sekarang.'
+                  : 'It has been 60 minutes since $translatedName started. Please pray Isha soon.';
+
+              nativeSchedules.add({
+                'id': baseId + 3,
+                'title': endingTitle,
+                'body': endingBody,
+                'time': plus60Time,
+              });
             }
           } else if (endTime != null &&
               endTime != '--:--' &&
               endTime != 'Error') {
             final minus30Time = _addMinutes(endTime, -30);
             if (minus30Time != null) {
-              await _schedulePrayerNotification(
-                id: baseId + 3,
-                title: ' $title Ending Soon',
-                body: 'Only 30 minutes left for $title prayer.',
-                time: minus30Time,
-              );
+              String endingTitle = Get.locale?.languageCode == 'id'
+                  ? 'Waktu $translatedName Akan Habis'
+                  : '$translatedName Ending Soon';
+              String endingBody = Get.locale?.languageCode == 'id'
+                  ? 'Hanya tersisa 30 menit untuk waktu $translatedName.'
+                  : 'Only 30 minutes left for $translatedName prayer.';
+
+              nativeSchedules.add({
+                'id': baseId + 3,
+                'title': endingTitle,
+                'body': endingBody,
+                'time': minus30Time,
+              });
             }
           }
         }
@@ -241,6 +274,11 @@ class NotificationService {
           startTime: ishaTime,
           endTime: null);
 
+      // Kirim semua jadwal ke Android Native
+      await platform.invokeMethod('scheduleBasicNotifications', {
+        'schedules': nativeSchedules,
+      });
+
       await checkPendingNotifications();
     } catch (e) {
       debugPrint('❌ Error scheduling prayer notifications: $e');
@@ -265,73 +303,13 @@ class NotificationService {
     return '${newHour.toString().padLeft(2, '0')}:${newMinute.toString().padLeft(2, '0')}';
   }
 
-  Future<void> _schedulePrayerNotification({
-    required int id,
-    required String title,
-    required String body,
-    required String time,
-  }) async {
-    try {
-      final timeParts = time.split(':');
-      if (timeParts.length != 2) {
-        debugPrint('❌ Invalid time format: $time');
-        return;
-      }
+  // Remove _schedulePrayerNotification as it is no longer used
 
-      final hour = int.parse(timeParts[0]);
-      final minute = int.parse(timeParts[1]);
-
-      final now = DateTime.now();
-      var scheduledDate = DateTime(now.year, now.month, now.day, hour, minute);
-
-      if (scheduledDate.isBefore(now)) {
-        scheduledDate = scheduledDate.add(const Duration(days: 1));
-      }
-
-      await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-          id: id,
-          channelKey: prayerChannelKey,
-          title: title,
-          body: body,
-          category: NotificationCategory.Reminder,
-          notificationLayout: NotificationLayout.Default,
-          wakeUpScreen: true,
-          fullScreenIntent: false,
-          criticalAlert: true,
-          autoDismissible: true,
-          displayOnForeground: true,
-          displayOnBackground: true,
-          locked: false,
-          color: const Color(0xFF009688),
-          backgroundColor: Colors.white,
-        ),
-        actionButtons: [
-          NotificationActionButton(
-            key: 'DISMISS',
-            label: 'Dismiss',
-            autoDismissible: true,
-          ),
-        ],
-        schedule: NotificationCalendar(
-          hour: hour,
-          minute: minute,
-          second: 0,
-          millisecond: 0,
-          repeats: true,
-          allowWhileIdle: true,
-          preciseAlarm: true,
-        ),
-      );
-    } catch (e) {
-      debugPrint('❌ Error scheduling notification for $title: $e');
-      rethrow;
-    }
-  }
 
   Future<void> cancelAllNotifications() async {
     try {
       await AwesomeNotifications().cancelAllSchedules();
+      await platform.invokeMethod('cancelBasicNotifications');
     } catch (e) {
       debugPrint('❌ Error cancelling notifications: $e');
     }

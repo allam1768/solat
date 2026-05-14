@@ -7,14 +7,15 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
 
-    private val CHANNEL = "solat/native_overlay"
+    private val OVERLAY_CHANNEL = "solat/native_overlay"
+    private val NOTIFICATION_CHANNEL = "solat/native_notification"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            CHANNEL
+            OVERLAY_CHANNEL
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "schedulePrayerOverlays" -> {
@@ -33,6 +34,35 @@ class MainActivity : FlutterActivity() {
 
                 "cancelPrayerOverlays" -> {
                     NativeOverlayScheduler.cancelAll(this)
+                    result.success(null)
+                }
+
+                else -> result.notImplemented()
+            }
+        }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            NOTIFICATION_CHANNEL
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "scheduleBasicNotifications" -> {
+                    val args = call.arguments as? Map<*, *>
+                    if (args == null) {
+                        result.error("INVALID_ARGS", "Arguments must be a map", null)
+                        return@setMethodCallHandler
+                    }
+
+                    @Suppress("UNCHECKED_CAST")
+                    val schedules = args["schedules"] as? List<Map<String, Any>>
+                    if (schedules != null) {
+                        NativeBasicNotificationScheduler.scheduleNotifications(this, schedules)
+                    }
+                    result.success(null)
+                }
+
+                "cancelBasicNotifications" -> {
+                    NativeBasicNotificationScheduler.cancelAll(this)
                     result.success(null)
                 }
 
