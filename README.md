@@ -48,8 +48,8 @@ Experience the premium prayer companion today. Download the latest Android versi
 ## 📸 App Screenshots
 
 <p align="center">
-  <img src="assets/images/Screenshot_20260226-205526.png" width="220" style="border-radius: 10px; margin: 10px;">
-  <img src="assets/images/Screenshot_20260226-205534.png" width="220" style="border-radius: 10px; margin: 10px;">
+  <img src="solat/assets/images/Screenshot_20260226-205526.png" width="220" style="border-radius: 10px; margin: 10px;">
+  <img src="solat/assets/images/Screenshot_20260226-205534.png" width="220" style="border-radius: 10px; margin: 10px;">
 </p>
 
 ---
