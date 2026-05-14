@@ -1,69 +1,87 @@
-<div align="center">
-  <!-- Replace the URL with your app icon/logo path if available -->
-  <img src="assets/icons/logo.svg" alt="Solat App Icon" width="120">
+# 🕋 Solat App - Precise & Smart Prayer Companion
 
-  # Solat App
+[![Flutter](https://img.shields.io/badge/Flutter-v3.10+-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
+[![Dart](https://img.shields.io/badge/Dart-v3.0+-0175C2?logo=dart&logoColor=white)](https://dart.dev)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-  **A premium, real-time prayer companion designed for precision and spiritual discipline.**
-
-  [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat-square&logo=Flutter&logoColor=white)](https://flutter.dev)
-  [![Dart](https://img.shields.io/badge/Dart-%230175C2.svg?style=flat-square&logo=dart&logoColor=white)](https://dart.dev)
-  [![GetX](https://img.shields.io/badge/State_Management-GetX-%23E0A3F.svg?style=flat-square)](https://pub.dev/packages/get)
-  [![Platform](https://img.shields.io/badge/Platform-Android-green?style=flat-square)](https://android.com)
-
-</div>
+**Solat App** is a modern, high-performance prayer time application built with Flutter. It's designed to provide accurate prayer times anywhere in the world, even without an internet connection, while offering "smart" reminder features that ensure you never miss a prayer.
 
 ---
 
-## 🌟 Key Features
+## ✨ Key Features
 
-- 📍 **Intelligent Location Awareness**  
-  Automatically synchronizes with your GPS coordinates to provide pinpoint accuracy for all daily prayers (Fajr, Dhuhr, Asr, Maghrib, Isha) and Sunrise.
+### 🌍 Global & Offline Accuracy
+- **Zero-Config Detection**: Automatically detects the best calculation method based on your GPS country code.
+- **Fully Offline**: All calculations are done locally using the `adhan` library—no internet required.
+- **Precise Location**: Integration with high-precision location services for exact timing.
 
-- 🕋 **Global Data Accuracy**  
-  Seamlessly integrated with the **Aladhan API**, ensuring your prayer schedule is always aligned with trusted global standards.
+### 🧠 Smart Reminder System
+- **Dynamic Overlays**: A progressive reminder system that increases in intensity (Gentle -> High -> Critical) if you haven't marked your prayer as done.
+- **Interactive Snooze**: Native Android overlays with "I've Prayed", "Later", and "On my way" options.
+- **Smart vs. Basic Mode**: Choose between non-intrusive standard notifications or the full "Smart" overlay experience.
+- **Isha Special Logic**: Custom timeout for Isha reminders to accommodate night-time usage.
 
-- 🔔 **Intelligent Prayer Guardian (Native Overlay)**  
-  A sophisticated, non-intrusive full-screen overlay system that acts as your dedicated spiritual guardian.
-  - **Dynamic Real-Time Feedback**: Shows exactly how many minutes are left before a prayer time ends or how many minutes have passed since it started.
-  - **Smart Snooze Logic**: Multiple reminder attempts (10m and 5m intervals) to ensure you stay on track.
-  - **Premium UI/UX**: Designed with a clean, high-contrast aesthetic that respects your focus.
+### 🕌 Friday Special
+- **Jumatan Mode**: Automatically labels Dhuhr as "Jumatan" on Fridays.
+- **Preparation Reminders**: Dedicated notifications at 50 and 30 minutes before Friday prayer to help you prepare for the mosque.
 
-- 🛡️ **Resilient Architecture**  
-  Built with native Android persistence. Your reminders are preserved across device reboots and system updates, ensuring you never miss a beat.
-
-- ⚡ **High-Performance Core**  
-  Leverages **GetX** for ultra-fast state management and a lightweight footprint, providing a lag-free experience even on entry-level devices.
-
----
-
-## 📦 Download APK
-
-Experience the premium prayer companion today. Download the latest Android version here:
-
-👉 **[Download Solat App (APK)](https://drive.google.com/drive/folders/1kKgQwffShvFP57T50BWBlV82uJ5u4aR5?usp=drive_link)**
+### 🎨 Modern & Responsive UI
+- **Sleek Aesthetics**: Clean, minimal design with support for Light and Dark modes.
+- **Responsive Layout**: Pixel-perfect UI across different screen sizes using `ScreenUtil`.
+- **Customized Onboarding**: Smooth introduction flow with gender-specific tailoring for a personalized experience.
 
 ---
 
-## 📸 App Screenshots
+## 🛠️ Technical Stack
+
+- **Framework**: [Flutter](https://flutter.dev)
+- **State Management**: [GetX](https://pub.dev/packages/get)
+- **Local Storage**: [GetStorage](https://pub.dev/packages/get_storage)
+- **Prayer Logic**: [Adhan Dart](https://pub.dev/packages/adhan)
+- **Notifications**: [Awesome Notifications](https://pub.dev/packages/awesome_notifications)
+- **Overlay Window**: [Flutter Overlay Window](https://pub.dev/packages/flutter_overlay_window) + Custom Native Kotlin implementation.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Flutter SDK (Channel Stable)
+- Android Studio / VS Code
+- Android Device (API 26+ recommended for best overlay experience)
+
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/allam1768/solat.git
+   ```
+2. Install dependencies:
+   ```bash
+   cd solat
+   flutter pub get
+   ```
+3. Run the app:
+   ```bash
+   flutter run
+   ```
+
+---
+
+## 📦 Build Instructions (Release)
+
+To generate the smallest possible APK for your device:
+```bash
+flutter build apk --release --split-per-abi
+```
+The optimized APKs will be located in `build/app/outputs/flutter-apk/`.
+
+---
+
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
 
 <p align="center">
-  <img src="assets/images/Screenshot_20260226-205526.png" width="220" style="border-radius: 10px; margin: 10px;">
-  <img src="assets/images/Screenshot_20260226-205534.png" width="220" style="border-radius: 10px; margin: 10px;">
+  Made with ❤️ for the Ummah.
 </p>
-
----
-
-## 🛠️ Technologies & Libraries
-
-- **Flutter & Dart** – Cross-platform excellence.
-- **GetX** – Advanced State Management & Dependency Injection.
-- **Geolocator** – Precise real-time location services.
-- **Native Android Services** – Custom Kotlin implementation for high-priority overlays and persistent alarms.
-- **AlarmManager** – System-level scheduling for 100% reliability.
-
----
-
-<div align="center"> 
-  <b>Built with ❤️ to elevate your spiritual journey.</b> 
-</div>
