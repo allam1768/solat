@@ -453,9 +453,14 @@ class PrayerOverlayService : Service() {
         }
 
         val delayMillis = if (isLastAttempt) {
-            // Hitung sisa waktu sampai sholat berikutnya (auto-close saat sholat selanjutnya masuk)
-            getMillisUntil(nextPrayerTime).let { 
-                if (it >= 0) it else 3600000 // Fallback 1 jam kalau gagal parse
+            if (prayerName == "Isya") {
+                // Khusus Isya: Hardcode 10 menit standby di layar
+                600000L 
+            } else {
+                // Sholat lain: Tunggu sampai waktu sholat berikutnya (auto-close saat sholat selanjutnya masuk)
+                getMillisUntil(nextPrayerTime).let { 
+                    if (it >= 0) it else 3600000 // Fallback 1 jam kalau gagal parse
+                }
             }
         } else {
             // Overlay 1 & 2: Tunggu 2 menit di layar sebelum auto-snooze
@@ -479,6 +484,18 @@ class PrayerOverlayService : Service() {
                 set(java.util.Calendar.MINUTE, m)
                 set(java.util.Calendar.SECOND, 0)
                 set(java.util.Calendar.MILLISECOND, 0)
+            }
+            
+            if (isPast) {
+                // Counting minutes since start. If target is in the future, it was likely yesterday (e.g. 23:00 yesterday vs 01:00 today)
+                if (target.after(now)) {
+                    target.add(java.util.Calendar.DAY_OF_YEAR, -1)
+                }
+            } else {
+                // Counting minutes until end. If target is in the past, it's likely tomorrow (e.g. 04:30 tomorrow vs 23:00 today)
+                if (target.before(now)) {
+                    target.add(java.util.Calendar.DAY_OF_YEAR, 1)
+                }
             }
             
             val diffMillis = if (isPast) {
@@ -510,7 +527,8 @@ class PrayerOverlayService : Service() {
             }
             
             if (target.before(now)) {
-                return 0L // Sudah lewat, tutup sekarang
+                // If the target time has passed today, it must be for tomorrow (e.g. Subuh at 04:30 vs current Isha at 20:00)
+                target.add(java.util.Calendar.DAY_OF_YEAR, 1)
             }
             
             target.timeInMillis - now.timeInMillis

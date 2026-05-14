@@ -27,6 +27,8 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
   var isRequestingBattery = false.obs;
   var isRequestingOverlay = false.obs;
 
+  var selectedGender = ''.obs; // 'male', 'female', or empty
+
   @override
   void onInit() {
     super.onInit();
@@ -91,7 +93,7 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
   }
 
   void nextPage() {
-    if (currentPage.value < 5) {
+    if (currentPage.value < 6) {
       pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -117,23 +119,22 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
     try {
       await _notificationService.setNotificationEnabled(true);
 
-      await Future.delayed(const Duration(milliseconds: 500));
-      hasNotificationPermission.value = _notificationService.isNotificationEnabled();
-
-      if (hasNotificationPermission.value) {
-        debugPrint('✅ Notification permission granted');
-        Fluttertoast.showToast(
-          msg: "Notification permission granted",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.grey.shade200,
-          textColor: Colors.black,
-          fontSize: 16.0,
-        );
-
         await Future.delayed(const Duration(milliseconds: 500));
-        nextPage();
-      }
+        hasNotificationPermission.value = _notificationService.isNotificationEnabled();
+
+        if (hasNotificationPermission.value) {
+          debugPrint('✅ Notification permission granted');
+          Fluttertoast.showToast(
+            msg: "Notification permission granted",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.grey.shade200,
+            textColor: Colors.black,
+            fontSize: 16.0,
+          );
+
+          // nextPage() removed to fix auto-scroll bug
+        }
     } catch (e) {
       debugPrint('❌ Error requesting notification permission: $e');
       Fluttertoast.showToast(
@@ -158,23 +159,22 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
     try {
       final status = await Permission.location.request();
 
-      await Future.delayed(const Duration(milliseconds: 500));
-      hasLocationPermission.value = status.isGranted;
-
-      if (hasLocationPermission.value) {
-        debugPrint('✅ Location permission granted');
-        Fluttertoast.showToast(
-          msg: "Location permission granted",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.grey.shade200,
-          textColor: Colors.black,
-          fontSize: 16.0,
-        );
-
         await Future.delayed(const Duration(milliseconds: 500));
-        nextPage();
-      } else {
+        hasLocationPermission.value = status.isGranted;
+
+        if (hasLocationPermission.value) {
+          debugPrint('✅ Location permission granted');
+          Fluttertoast.showToast(
+            msg: "Location permission granted",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.grey.shade200,
+            textColor: Colors.black,
+            fontSize: 16.0,
+          );
+
+          // nextPage() removed to fix auto-scroll bug
+        } else {
         debugPrint('⚠️ Location permission denied');
         Fluttertoast.showToast(
           msg: "Location access helps calculate accurate prayer times",
@@ -211,27 +211,26 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
 
       debugPrint('🔋 Battery status after request: $status');
 
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      final batteryStatus = await Permission.ignoreBatteryOptimizations.status;
-      hasBatteryExemption.value = batteryStatus.isGranted;
-
-      debugPrint('🔋 Battery exemption: ${hasBatteryExemption.value}');
-
-      if (hasBatteryExemption.value) {
-        debugPrint('✅ Battery exemption granted');
-        Fluttertoast.showToast(
-          msg: "Battery optimization disabled",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.grey.shade200,
-          textColor: Colors.black,
-          fontSize: 16.0,
-        );
-
         await Future.delayed(const Duration(milliseconds: 500));
-        nextPage();
-      } else {
+
+        final batteryStatus = await Permission.ignoreBatteryOptimizations.status;
+        hasBatteryExemption.value = batteryStatus.isGranted;
+
+        debugPrint('🔋 Battery exemption: ${hasBatteryExemption.value}');
+
+        if (hasBatteryExemption.value) {
+          debugPrint('✅ Battery exemption granted');
+          Fluttertoast.showToast(
+            msg: "Battery optimization disabled",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.grey.shade200,
+            textColor: Colors.black,
+            fontSize: 16.0,
+          );
+
+          // nextPage() removed to fix auto-scroll bug
+        } else {
         debugPrint('⚠️ Battery exemption denied or needs manual action');
         Fluttertoast.showToast(
           msg: "Please disable battery optimization manually in settings",
@@ -281,7 +280,7 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
         );
 
         await Future.delayed(const Duration(milliseconds: 500));
-        nextPage();
+        // nextPage() removed to fix auto-scroll bug
         return;
       }
 
@@ -311,7 +310,10 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
   Future<void> completeOnboarding() async {
     try {
       await _storage.write('onboarding_completed', true);
-      debugPrint('✅ Onboarding completed');
+      if (selectedGender.value.isNotEmpty) {
+        await _storage.write('gender', selectedGender.value);
+      }
+      debugPrint('✅ Onboarding completed with gender: ${selectedGender.value}');
       await Future.delayed(const Duration(milliseconds: 300));
       Get.offAllNamed(AppRoutes.MAIN);
     } catch (e) {

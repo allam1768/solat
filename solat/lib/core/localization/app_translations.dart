@@ -32,6 +32,11 @@ class AppTranslations extends Translations {
           'maghrib': 'Maghrib',
           'isha': 'Isha',
           'next_prayer': 'Next Prayer',
+          'friday_prayer': 'Friday Prayer',
+          'friday_reminder': 'Friday Reminder',
+          'friday_reminder_desc': 'Remind me to prepare 50 and 30 minutes before Friday prayer.',
+          'friday_prep_title': 'Friday Preparation',
+          'friday_prep_body': 'It\'s almost time for Friday prayer. Let\'s get ready!',
           
           // Qibla
           'qibla_finder': 'Qibla Finder',
@@ -94,6 +99,11 @@ class AppTranslations extends Translations {
           'maghrib': 'Maghrib',
           'isha': 'Isya',
           'next_prayer': 'Waktu Sholat Berikutnya',
+          'friday_prayer': 'Jumatan',
+          'friday_reminder': 'Pengingat Jumatan',
+          'friday_reminder_desc': 'Ingatkan untuk bersiap 50 dan 30 menit sebelum Jumatan.',
+          'friday_prep_title': 'Persiapan Jumatan',
+          'friday_prep_body': 'Sudah hampir waktu Jumatan. Yuk, bersiap-siap!',
           
           // Qibla
           'qibla_finder': 'Pencari Kiblat',

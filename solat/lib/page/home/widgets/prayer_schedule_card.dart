@@ -49,7 +49,7 @@ class PrayerScheduleCard extends GetView<HomeController> {
 
           Obx(() => PrayerItem(
             iconPath: 'zuhur.svg',
-            name: 'dhuhr'.tr,
+            name: controller.isFriday.value ? 'friday_prayer'.tr : 'dhuhr'.tr,
             prayerKey: 'dhuhr',
             time: controller.dhuhrTime.value,
           )),

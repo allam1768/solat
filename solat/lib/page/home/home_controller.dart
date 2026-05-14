@@ -33,6 +33,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   var maghribTime = '--:--'.obs;
   var ishaTime = '--:--'.obs;
   var isLoadingPrayer = true.obs;
+  var isFriday = false.obs;
 
   var currentPrayerKey = ''.obs;
   DateTime? _lastFetchTime;
@@ -138,23 +139,6 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> handleLocationTap() async {
-    final isDark = Get.isDarkMode;
-
-    // Show a premium adaptive snackbar
-    Get.snackbar(
-      'Location',
-      'Searching for your current position...',
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: isDark ? Colors.white : Colors.black,
-      colorText: isDark ? Colors.black : Colors.white,
-      borderRadius: 10,
-      margin: const EdgeInsets.all(15),
-      borderWidth: 1.5,
-      borderColor: isDark ? Colors.black : Colors.white,
-      duration: const Duration(seconds: 2),
-      icon: Icon(Icons.location_searching,
-          color: isDark ? Colors.black : Colors.white, size: 20),
-    );
 
     if (locationError.value.isEmpty) {
       await refreshLocation();
@@ -269,6 +253,10 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     
     currentDay.value = DateFormat('EEEE', locale).format(now);
     currentDate.value = DateFormat('d MMMM yyyy', locale).format(now);
+    
+    // Update isFriday
+    isFriday.value = now.weekday == DateTime.friday;
+    
     _checkCurrentPrayer();
   }
 
