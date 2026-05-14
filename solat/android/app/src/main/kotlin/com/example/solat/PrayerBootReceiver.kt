@@ -16,6 +16,7 @@ class PrayerBootReceiver : BroadcastReceiver() {
 
         if (Intent.ACTION_BOOT_COMPLETED == action || ACTION_QUICKBOOT_POWERON == action) {
             NativeOverlayScheduler.restoreAllSchedulesAfterBoot(context)
+            NativeBasicNotificationScheduler.restoreAllSchedulesAfterBoot(context)
         }
     }
 

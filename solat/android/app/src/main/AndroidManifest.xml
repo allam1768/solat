@@ -57,6 +57,11 @@
             android:name=".PrayerAlarmReceiver"
             android:exported="false" />
 
+        <!-- Alarm receiver for native basic notifications -->
+        <receiver
+            android:name=".BasicNotificationReceiver"
+            android:exported="false" />
+
         <!-- Restore native overlay alarms after reboot -->
         <receiver
             android:name=".PrayerBootReceiver"
