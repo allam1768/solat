@@ -68,6 +68,13 @@ object NativeBasicNotificationScheduler {
             cal.add(Calendar.DAY_OF_YEAR, 1)
         }
 
+        // Ensure Friday preparation reminders (IDs 204 and 205) are strictly scheduled for Fridays.
+        if (id == 204 || id == 205) {
+            while (cal.get(Calendar.DAY_OF_WEEK) != Calendar.FRIDAY) {
+                cal.add(Calendar.DAY_OF_YEAR, 1)
+            }
+        }
+
         scheduleAlarmAt(context, id, title, body, cal.timeInMillis)
     }
 
