@@ -5,6 +5,7 @@ import 'package:flutter_compass/flutter_compass.dart';
 import 'package:get/get.dart';
 import 'package:vibration/vibration.dart';
 import '../../service/location_service.dart';
+import '../main/main_controller.dart';
 
 class QiblaController extends GetxController with GetSingleTickerProviderStateMixin, WidgetsBindingObserver {
   final LocationService _locationService = Get.find<LocationService>();
@@ -56,6 +57,23 @@ class QiblaController extends GetxController with GetSingleTickerProviderStateMi
     WidgetsBinding.instance.addObserver(this);
     
     initQibla();
+
+    // ✅ Listen to MainController tab changes to pause/resume compass
+    if (Get.isRegistered<MainController>()) {
+      final mainController = Get.find<MainController>();
+      ever(mainController.currentIndex, (index) {
+        if (index == 1) { // 1 is Qibla tab
+          if (compassSubscription == null && !isLoading.value) {
+            debugPrint('Qibla: Switched to Qibla tab, restarting compass');
+            listenToCompass();
+          }
+        } else {
+          debugPrint('Qibla: Switched away from Qibla tab, stopping compass');
+          compassSubscription?.cancel();
+          compassSubscription = null;
+        }
+      });
+    }
   }
 
   @override

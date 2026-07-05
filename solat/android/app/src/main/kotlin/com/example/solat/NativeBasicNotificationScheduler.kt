@@ -38,6 +38,15 @@ object NativeBasicNotificationScheduler {
                 editor.putString("${KEY_PREFIX}${id}_title", title)
                 editor.putString("${KEY_PREFIX}${id}_body", body)
                 editor.putString("${KEY_PREFIX}${id}_time", time)
+                
+                val fridayTitle = item["fridayTitle"] as? String
+                if (fridayTitle != null) {
+                    editor.putString("${KEY_PREFIX}${id}_fridayTitle", fridayTitle)
+                    editor.putString("${KEY_PREFIX}${id}_fridayBody", item["fridayBody"] as? String ?: "")
+                } else {
+                    editor.remove("${KEY_PREFIX}${id}_fridayTitle")
+                    editor.remove("${KEY_PREFIX}${id}_fridayBody")
+                }
             }
 
             editor.putString(KEY_ACTIVE_IDS, idList.joinToString(","))
@@ -75,7 +84,19 @@ object NativeBasicNotificationScheduler {
             }
         }
 
-        scheduleAlarmAt(context, id, title, body, cal.timeInMillis)
+        var finalTitle = title
+        var finalBody = body
+        if (cal.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val fTitle = prefs.getString("${KEY_PREFIX}${id}_fridayTitle", "")
+            val fBody = prefs.getString("${KEY_PREFIX}${id}_fridayBody", "")
+            if (!fTitle.isNullOrEmpty() && !fBody.isNullOrEmpty()) {
+                finalTitle = fTitle
+                finalBody = fBody
+            }
+        }
+
+        scheduleAlarmAt(context, id, finalTitle, finalBody, cal.timeInMillis)
     }
 
     private fun scheduleAlarmAt(context: Context, id: Int, title: String, body: String, triggerAtMillis: Long) {
