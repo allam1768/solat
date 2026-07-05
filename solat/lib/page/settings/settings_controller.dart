@@ -9,13 +9,15 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../service/overlay_service.dart';
 import '../../service/notification_service.dart';
-import '../../service/permission_helper.dart'; // âœ… NEW
+import '../../service/permission_helper.dart'; // ✅ NEW
+import '../../service/update_service.dart'; // ✅ NEW
 import 'package:solat/page/home/home_controller.dart';
 
 class SettingsController extends GetxController {
   final OverlayService _overlayService = OverlayService();
   final NotificationService _notificationService = NotificationService();
-  final PermissionHelper _permissionHelper = PermissionHelper(); // âœ… NEW
+  final PermissionHelper _permissionHelper = PermissionHelper(); // ✅ NEW
+  final UpdateService _updateService = Get.find<UpdateService>(); // ✅ NEW
   final _storage = GetStorage();
 
   var notificationEnabled = true.obs;
@@ -339,4 +341,10 @@ Tap Continue to grant these permissions.
       showToast('Could not launch feedback form');
     }
   }
+
+  Future<void> checkManualUpdate() async {
+    await _updateService.checkForUpdate(isManual: true);
+  }
+
+  String get appVersion => UpdateService.appVersion;
 }

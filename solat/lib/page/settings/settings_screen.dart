@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'settings_controller.dart';
+import '../../service/update_service.dart';
 
 class SettingsScreen extends GetView<SettingsController> {
   const SettingsScreen({super.key});
@@ -75,6 +76,8 @@ class SettingsScreen extends GetView<SettingsController> {
               _buildSectionHeader('support_feedback'.tr, isDark),
               SizedBox(height: 12.h),
               _buildFeedbackCard(context, isDark),
+              SizedBox(height: 12.h),
+              _buildUpdateCard(context, isDark),
             ],
           ),
         ),
@@ -659,6 +662,98 @@ class SettingsScreen extends GetView<SettingsController> {
                 color: fgColor.withValues(alpha: 0.3),
                 size: 18.sp,
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Update Card - Black & White Theme
+  Widget _buildUpdateCard(BuildContext context, bool isDark) {
+    final fgColor = isDark ? Colors.white : Colors.black;
+    final cardColor = isDark ? Colors.black : Colors.white;
+    final borderColor = isDark ? Colors.white30 : Colors.black12;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: controller.checkManualUpdate,
+        borderRadius: BorderRadius.circular(15.r),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(15.r),
+            border: Border.all(
+              color: borderColor,
+              width: 1.w,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10.w),
+                decoration: BoxDecoration(
+                  color: fgColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Icon(
+                  Icons.system_update_rounded,
+                  size: 20.sp,
+                  color: fgColor,
+                ),
+              ),
+              SizedBox(width: 16.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'check_for_updates'.tr,
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w600,
+                        color: fgColor,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      '${'current_version'.tr} ${controller.appVersion}',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: fgColor.withValues(alpha: 0.6),
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Obx(() {
+                final isChecking = Get.find<UpdateService>().isChecking.value;
+                if (isChecking) {
+                  return SizedBox(
+                    width: 18.w,
+                    height: 18.w,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.w,
+                      valueColor: AlwaysStoppedAnimation<Color>(fgColor),
+                    ),
+                  );
+                }
+                return Icon(
+                  Icons.chevron_right_rounded,
+                  color: fgColor.withValues(alpha: 0.3),
+                  size: 20.sp,
+                );
+              }),
             ],
           ),
         ),

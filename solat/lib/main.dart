@@ -6,6 +6,7 @@ import 'package:solat/service/location_service.dart';
 import 'package:solat/service/prayer_time_service.dart';
 import 'package:solat/service/notification_service.dart';
 import 'package:solat/service/overlay_scheduler_service.dart';
+import 'package:solat/service/update_service.dart';
 import 'core/app_theme.dart';
 import 'core/localization/app_translations.dart';
 import 'routes/app_pages.dart';
@@ -29,6 +30,7 @@ void main() async {
 
   Get.put(LocationService());
   Get.put(PrayerTimeService());
+  Get.put(UpdateService());
 
   // ✅ Lock orientation
   await SystemChrome.setPreferredOrientations([
