@@ -146,19 +146,21 @@ class NotificationService {
             ? 'Sudah masuk waktu sholat $translatedName.'
             : 'It\'s time for $translatedName prayer.';
 
-        if (isFriday && title == 'Dhuhr') {
-          finalTitle = 'friday_prayer'.tr;
-          finalBody = Get.locale?.languageCode == 'id'
-              ? 'Sudah masuk waktu sholat Jum\'at.'
-              : 'It\'s time for Friday prayer.';
-        }
-
-        nativeSchedules.add({
+        Map<String, dynamic> scheduleData = {
           'id': baseId + 1,
           'title': finalTitle,
           'body': finalBody,
           'time': startTime,
-        });
+        };
+
+        if (title == 'Dhuhr') {
+          scheduleData['fridayTitle'] = 'friday_prayer'.tr;
+          scheduleData['fridayBody'] = Get.locale?.languageCode == 'id'
+              ? 'Sudah masuk waktu sholat Jum\'at.'
+              : 'It\'s time for Friday prayer.';
+        }
+
+        nativeSchedules.add(scheduleData);
 
         // Friday Preparation Reminders
         if (isFriday && title == 'Dhuhr' && isFridayReminderEnabled) {
@@ -197,12 +199,23 @@ class NotificationService {
               ? 'Sudah 30 menit sejak waktu $translatedName dimulai.'
               : '30 minutes have passed since $translatedName started.';
 
-          nativeSchedules.add({
+          Map<String, dynamic> reminderData = {
             'id': baseId + 2,
             'title': reminderTitle,
             'body': reminderBody,
             'time': plus30Time,
-          });
+          };
+
+          if (title == 'Dhuhr') {
+            reminderData['fridayTitle'] = Get.locale?.languageCode == 'id' 
+                ? 'Pengingat Jumatan' 
+                : 'Friday Prayer Reminder';
+            reminderData['fridayBody'] = Get.locale?.languageCode == 'id'
+                ? 'Sudah 30 menit sejak waktu Jum\'at dimulai.'
+                : '30 minutes have passed since Friday prayer started.';
+          }
+
+          nativeSchedules.add(reminderData);
         }
 
         // 3. -30 Minutes (Hanya jika profile == 0 / Basic Mode, dan endTime ada)
