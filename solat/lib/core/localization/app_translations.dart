@@ -69,6 +69,17 @@ class AppTranslations extends Translations {
           'support_feedback': 'Support & Feedback',
           'feedback': 'Send Feedback',
           'feedback_desc': 'Help us improve Salat by sharing your thoughts or reporting issues.',
+
+          // Update
+          'update_available': 'Update Available',
+          'update_prompt': 'A new version of Salat is available. Update now to get the latest features and fixes.',
+          'update_now': 'Update Now',
+          'check_for_updates': 'Check for Updates',
+          'checking_updates': 'Checking for updates...',
+          'already_latest': 'You are using the latest version.',
+          'failed_check': 'Failed to check for updates.',
+          'current_version': 'Version',
+          'later': 'Later',
         },
         'id_ID': {
           'settings': 'Pengaturan',
@@ -136,6 +147,17 @@ class AppTranslations extends Translations {
           'support_feedback': 'Bantuan & Masukan',
           'feedback': 'Kirim Masukan',
           'feedback_desc': 'Bantu kami mengembangkan Salat dengan berbagi pemikiran atau melaporkan masalah.',
+
+          // Update
+          'update_available': 'Pembaruan Tersedia',
+          'update_prompt': 'Versi baru Salat telah tersedia. Update sekarang untuk mendapatkan fitur dan perbaikan terbaru.',
+          'update_now': 'Update Sekarang',
+          'check_for_updates': 'Cek Pembaruan',
+          'checking_updates': 'Memeriksa pembaruan...',
+          'already_latest': 'Anda sudah menggunakan versi terbaru.',
+          'failed_check': 'Gagal memeriksa pembaruan.',
+          'current_version': 'Versi',
+          'later': 'Nanti',
         },
       };
 }
