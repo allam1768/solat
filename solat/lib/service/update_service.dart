@@ -10,7 +10,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 class UpdateService extends GetxService {
   static const String appVersion = '1.0.0';
   static const int buildNumber = 1;
-  static const String updateUrl = 'https://raw.githubusercontent.com/allam1768/solat/main/update.json';
+  static const String updateUrl = 'https://raw.githubusercontent.com/allam1768/solat/master/update.json';
 
   final _storage = GetStorage();
   var isChecking = false.obs;
