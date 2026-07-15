@@ -41,15 +41,17 @@
 
 Experience the premium prayer companion today. Download the latest Android version here:
 
-👉 **[Download Solat App (APK)](https://drive.google.com/drive/folders/1kKgQwffShvFP57T50BWBlV82uJ5u4aR5?usp=drive_link)**
+👉 **[Download Solat App (APK)](https://github.com/allam1768/solat/releases)**
 
 ---
 
 ## 📸 App Screenshots
 
 <p align="center">
-  <img src="solat/assets/images/Screenshot_20260226-205526.png" width="220" style="border-radius: 10px; margin: 10px;">
-  <img src="solat/assets/images/Screenshot_20260226-205534.png" width="220" style="border-radius: 10px; margin: 10px;">
+  <img src="solat/assets/images/1.png" width="200" style="border-radius: 10px; margin: 5px;">
+  <img src="solat/assets/images/2.png" width="200" style="border-radius: 10px; margin: 5px;">
+  <img src="solat/assets/images/3.png" width="200" style="border-radius: 10px; margin: 5px;">
+  <img src="solat/assets/images/4.png" width="200" style="border-radius: 10px; margin: 5px;">
 </p>
 
 ---

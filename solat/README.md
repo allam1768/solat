@@ -10,8 +10,8 @@
 
 ## 📲 Download
 
-You can download the latest production-ready APK directly from Google Drive:
-👉 [**Download Solat App APK**](https://drive.google.com/drive/folders/1kKgQwffShvFP57T50BWBlV82uJ5u4aR5?usp=drive_link)
+You can download the latest production-ready APK directly from GitHub Releases:
+👉 [**Download Solat App APK**](https://github.com/allam1768/solat/releases)
 
 ---
 
