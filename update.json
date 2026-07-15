@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "build_number": 1,
+  "version": "1.0.1",
+  "build_number": 2,
   "download_url": "https://github.com/allam1768/solat/releases",
-  "release_notes": "Initial release with basic prayer times, Qibla finder, and update checker."
+  "release_notes": "Perbaikan notifikasi persiapan sholat Jum'at agar selalu terjadwal dengan benar."
 }

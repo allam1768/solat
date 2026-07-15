@@ -112,9 +112,8 @@ class NotificationService {
     try {
       final profile =
           _storage.read('reminderProfile') ?? 1; // 0 = Basic, 1 = Smart
-      final isFridayReminderEnabled = 
+      final isFridayReminderEnabled =
           _storage.read(fridayReminderEnabledKey) ?? true;
-      final isFriday = DateTime.now().weekday == DateTime.friday;
 
       // Check if notifications are enabled
       if (!isNotificationEnabled()) {
@@ -163,7 +162,7 @@ class NotificationService {
         nativeSchedules.add(scheduleData);
 
         // Friday Preparation Reminders
-        if (isFriday && title == 'Dhuhr' && isFridayReminderEnabled) {
+        if (title == 'Dhuhr' && isFridayReminderEnabled) {
           // -50 Minutes
           final minus50Time = _addMinutes(startTime, -50);
           if (minus50Time != null) {
@@ -207,8 +206,8 @@ class NotificationService {
           };
 
           if (title == 'Dhuhr') {
-            reminderData['fridayTitle'] = Get.locale?.languageCode == 'id' 
-                ? 'Pengingat Jumatan' 
+            reminderData['fridayTitle'] = Get.locale?.languageCode == 'id'
+                ? 'Pengingat Jumatan'
                 : 'Friday Prayer Reminder';
             reminderData['fridayBody'] = Get.locale?.languageCode == 'id'
                 ? 'Sudah 30 menit sejak waktu Jum\'at dimulai.'
@@ -317,7 +316,6 @@ class NotificationService {
   }
 
   // Remove _schedulePrayerNotification as it is no longer used
-
 
   Future<void> cancelAllNotifications() async {
     try {
