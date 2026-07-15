@@ -45,10 +45,10 @@ Experience the premium prayer companion today. Download the latest Android versi
 
 ---
 
-## 📸 App Screenshots
+## 📱 Features & Highlights
 
 <p align="center">
-  <img src="solat/assets/images/1.png" width="200" style="border-radius: 10px; margin: 5px;">
+  <img src="solat/assets/images/1.png" width="620" style="border-radius: 12px; margin-bottom: 15px;"><br>
   <img src="solat/assets/images/2.png" width="200" style="border-radius: 10px; margin: 5px;">
   <img src="solat/assets/images/3.png" width="200" style="border-radius: 10px; margin: 5px;">
   <img src="solat/assets/images/4.png" width="200" style="border-radius: 10px; margin: 5px;">
