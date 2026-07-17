@@ -19,6 +19,9 @@ void main() async {
   // ✅ Init storage dulu
   await GetStorage.init();
 
+  // ✅ Load version info from assets/update.json
+  await UpdateService.initializeLocalVersion();
+
   // ✅ Initialize Global Services
   final notificationService = NotificationService();
   await notificationService.initialize();

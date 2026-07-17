@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
@@ -8,19 +9,35 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 class UpdateService extends GetxService {
-  static const String appVersion = '1.0.0';
-  static const int buildNumber = 1;
-  static const String updateUrl = 'https://raw.githubusercontent.com/allam1768/solat/master/update.json';
+  static String appVersion = '1.0.0';
+  static int buildNumber = 1;
+  static const String updateUrl =
+      'https://raw.githubusercontent.com/allam1768/solat/master/solat/assets/update.json';
+
+  static Future<void> initializeLocalVersion() async {
+    try {
+      final jsonString = await rootBundle.loadString('assets/update.json');
+      final data = json.decode(jsonString);
+      appVersion = data['version'] ?? '1.0.0';
+      buildNumber = data['build_number'] ?? 1;
+    } catch (e) {
+      debugPrint('Error loading local version from assets: $e');
+    }
+  }
 
   final _storage = GetStorage();
   var isChecking = false.obs;
 
   // ponytail: Simple semantic version comparison
   static bool isNewerVersion(String remoteVersion, String localVersion) {
-    List<int> remoteParts = remoteVersion.split('.').map((e) => int.tryParse(e) ?? 0).toList();
-    List<int> localParts = localVersion.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    List<int> remoteParts =
+        remoteVersion.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    List<int> localParts =
+        localVersion.split('.').map((e) => int.tryParse(e) ?? 0).toList();
 
-    int maxLength = remoteParts.length > localParts.length ? remoteParts.length : localParts.length;
+    int maxLength = remoteParts.length > localParts.length
+        ? remoteParts.length
+        : localParts.length;
     for (int i = 0; i < maxLength; i++) {
       int remoteVal = i < remoteParts.length ? remoteParts[i] : 0;
       int localVal = i < localParts.length ? localParts[i] : 0;
@@ -36,12 +53,15 @@ class UpdateService extends GetxService {
     isChecking.value = true;
 
     try {
-      final response = await http.get(Uri.parse(updateUrl)).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(Uri.parse(updateUrl))
+          .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final String remoteVersion = data['version'] ?? '1.0.0';
         final int remoteBuild = data['build_number'] ?? 1;
-        final String downloadUrl = data['download_url'] ?? 'https://github.com/allam1768/solat/releases';
+        final String downloadUrl = data['download_url'] ??
+            'https://github.com/allam1768/solat/releases';
         final String releaseNotes = data['release_notes'] ?? '';
 
         bool hasUpdate = false;
@@ -90,7 +110,8 @@ class UpdateService extends GetxService {
     );
   }
 
-  void _showUpdateDialog(String remoteVersion, String downloadUrl, String releaseNotes, bool isManual) {
+  void _showUpdateDialog(String remoteVersion, String downloadUrl,
+      String releaseNotes, bool isManual) {
     final context = Get.context;
     if (context == null) return;
 
@@ -115,7 +136,8 @@ class UpdateService extends GetxService {
             children: [
               Row(
                 children: [
-                  Icon(Icons.system_update_rounded, color: fgColor, size: 28.sp),
+                  Icon(Icons.system_update_rounded,
+                      color: fgColor, size: 28.sp),
                   SizedBox(width: 12.w),
                   Expanded(
                     child: Text(
@@ -197,7 +219,8 @@ class UpdateService extends GetxService {
                     ),
                     child: Text(
                       'later'.tr,
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14.sp),
                     ),
                   ),
                   SizedBox(width: 8.w),
@@ -205,14 +228,16 @@ class UpdateService extends GetxService {
                     onPressed: () async {
                       final Uri url = Uri.parse(downloadUrl);
                       if (await canLaunchUrl(url)) {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                        await launchUrl(url,
+                            mode: LaunchMode.externalApplication);
                       }
                       Get.back();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: fgColor,
                       foregroundColor: bgColor,
-                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 20.w, vertical: 12.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8.r),
                       ),
@@ -220,7 +245,8 @@ class UpdateService extends GetxService {
                     ),
                     child: Text(
                       'update_now'.tr,
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14.sp),
                     ),
                   ),
                 ],
