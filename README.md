@@ -1,6 +1,6 @@
 <div align="center">
-  <!-- Replace the URL with your app icon/logo path if available -->
-<img src="solat/assets/icons/logo.svg" alt="Solat App Icon" width="120">
+
+  <img src="solat/assets/icons/icont-readme.png" alt="Solat App Icon" width="200">
 
   # Solat App
 
