@@ -100,6 +100,14 @@ class PrayerOverlayService : Service() {
         removeOverlay()
         cancelAutoSnooze()
 
+        // ✅ Cek apakah waktu sholat berikutnya/terbit sudah lewat (misal jam Sunrise sudah lewat untuk Subuh)
+        if (prayerName != "Isya" && nextPrayerTime.isNotEmpty() && isPastTime(nextPrayerTime)) {
+            android.util.Log.d("PrayerOverlayService", "Next prayer time ($nextPrayerTime) has passed for $prayerName. Auto-closing overlay and sending missed notification.")
+            showMissedNotification(prayerName)
+            stopSelf()
+            return
+        }
+
         // ✅ Tambahkan getaran ringan saat overlay muncul
         vibratePhone(attemptCount)
 
@@ -421,8 +429,14 @@ class PrayerOverlayService : Service() {
             format = android.graphics.PixelFormat.TRANSLUCENT
         }
 
-        windowManager?.addView(root, layoutParams)
-        overlayView = root
+        try {
+            windowManager?.addView(root, layoutParams)
+            overlayView = root
+        } catch (e: Exception) {
+            android.util.Log.e("PrayerOverlayService", "Failed to add overlay view (permission denied or bad token)", e)
+            showFallbackNotification(prayerName, message)
+            stopSelf()
+        }
     }
 
     private fun removeOverlay() {
@@ -510,6 +524,27 @@ class PrayerOverlayService : Service() {
         }
     }
 
+    private fun isPastTime(timeStr: String): Boolean {
+        if (timeStr.isEmpty()) return false
+        return try {
+            val hm = timeStr.split(":")
+            if (hm.size != 2) return false
+            val h = hm[0].toInt()
+            val m = hm[1].toInt()
+
+            val now = java.util.Calendar.getInstance()
+            val target = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, h)
+                set(java.util.Calendar.MINUTE, m)
+                set(java.util.Calendar.SECOND, 0)
+                set(java.util.Calendar.MILLISECOND, 0)
+            }
+            now.timeInMillis >= target.timeInMillis
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun getMillisUntil(timeStr: String): Long {
         if (timeStr.isEmpty()) return -1
         return try {
@@ -527,11 +562,10 @@ class PrayerOverlayService : Service() {
             }
             
             if (target.before(now)) {
-                // If the target time has passed today, it must be for tomorrow (e.g. Subuh at 04:30 vs current Isha at 20:00)
-                target.add(java.util.Calendar.DAY_OF_YEAR, 1)
+                0L
+            } else {
+                target.timeInMillis - now.timeInMillis
             }
-            
-            target.timeInMillis - now.timeInMillis
         } catch (e: Exception) {
             -1
         }
@@ -620,9 +654,27 @@ class PrayerOverlayService : Service() {
         nm.notify(MISSED_NOTIFICATION_ID, notification)
     }
 
+    /**
+     * Fallback notifikasi biasa jika izin overlay dicabut/gagal tampil
+     */
+    private fun showFallbackNotification(prayerName: String, message: String) {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Waktu $prayerName")
+            .setContentText(message)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setAutoCancel(true)
+            .build()
+        
+        nm.notify(FALLBACK_NOTIFICATION_ID, notification)
+    }
+
     companion object {
         private const val CHANNEL_ID = "prayer_overlay_service_channel"
         private const val FOREGROUND_NOTIFICATION_ID = 991
         private const val MISSED_NOTIFICATION_ID = 992
+        private const val FALLBACK_NOTIFICATION_ID = 993
     }
 }

@@ -6,6 +6,7 @@ import '../page/splash/splash_screen.dart';
 import '../page/splash/splash_binding.dart';
 import '../page/main/main_screen.dart';
 import '../page/main/main_binding.dart';
+import '../page/privacy_policy/privacy_policy_screen.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -29,11 +30,17 @@ class AppPages {
     ),
 
     GetPage(
-        name: AppRoutes.ONBOARDING,
-        page: () => OnboardingScreen(),
-        bindings: [
-          OnboardingBinding(),
-        ],
-    )
+      name: AppRoutes.ONBOARDING,
+      page: () => OnboardingScreen(),
+      bindings: [
+        OnboardingBinding(),
+      ],
+    ),
+
+    GetPage(
+      name: AppRoutes.PRIVACY_POLICY,
+      page: () => const PrivacyPolicyScreen(),
+      transition: Transition.cupertino,
+    ),
   ];
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import '../../routes/app_routes.dart';
 import 'settings_controller.dart';
 import '../../service/update_service.dart';
 
@@ -78,6 +79,8 @@ class SettingsScreen extends GetView<SettingsController> {
               _buildFeedbackCard(context, isDark),
               SizedBox(height: 12.h),
               _buildUpdateCard(context, isDark),
+              SizedBox(height: 12.h),
+              _buildPrivacyPolicyCard(context, isDark),
             ],
           ),
         ),
@@ -755,6 +758,87 @@ class SettingsScreen extends GetView<SettingsController> {
                 );
               }),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Privacy Policy Card
+  Widget _buildPrivacyPolicyCard(BuildContext context, bool isDark) {
+    final fgColor = isDark ? Colors.white : Colors.black;
+    final cardColor = isDark ? Colors.black : Colors.white;
+    final borderColor = isDark ? Colors.white30 : Colors.black12;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(15.r),
+        border: Border.all(
+          color: borderColor,
+          width: 1.w,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Get.toNamed(AppRoutes.PRIVACY_POLICY),
+          borderRadius: BorderRadius.circular(15.r),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(10.w),
+                  decoration: BoxDecoration(
+                    color: fgColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Icon(
+                    Icons.security_rounded,
+                    size: 20.sp,
+                    color: fgColor,
+                  ),
+                ),
+                SizedBox(width: 16.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'privacy_policy'.tr,
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w600,
+                          color: fgColor,
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        'Read our privacy policy & data safety',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: fgColor.withValues(alpha: 0.6),
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.open_in_new_rounded,
+                  color: fgColor.withValues(alpha: 0.3),
+                  size: 20.sp,
+                ),
+              ],
+            ),
           ),
         ),
       ),

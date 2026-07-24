@@ -83,6 +83,12 @@ The optimized APKs will be located in `build/app/outputs/flutter-apk/`.
 
 ---
 
+## 🔒 Privacy Policy
+
+We value your privacy. Read our full [Privacy Policy](PRIVACY_POLICY.md) to learn how we handle location permissions and data security.
+
+---
+
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 

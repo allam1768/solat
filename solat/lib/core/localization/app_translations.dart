@@ -80,6 +80,7 @@ class AppTranslations extends Translations {
           'failed_check': 'Failed to check for updates.',
           'current_version': 'Version',
           'later': 'Later',
+          'privacy_policy': 'Privacy Policy',
         },
         'id_ID': {
           'settings': 'Pengaturan',
@@ -158,6 +159,7 @@ class AppTranslations extends Translations {
           'failed_check': 'Gagal memeriksa pembaruan.',
           'current_version': 'Versi',
           'later': 'Nanti',
+          'privacy_policy': 'Kebijakan Privasi',
         },
       };
 }

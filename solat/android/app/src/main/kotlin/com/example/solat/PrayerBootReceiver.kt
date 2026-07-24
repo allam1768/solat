@@ -14,7 +14,10 @@ class PrayerBootReceiver : BroadcastReceiver() {
         val action = intent.action
         Log.d(TAG, "onReceive action=$action")
 
-        if (Intent.ACTION_BOOT_COMPLETED == action || ACTION_QUICKBOOT_POWERON == action) {
+        if (Intent.ACTION_BOOT_COMPLETED == action ||
+            ACTION_QUICKBOOT_POWERON == action ||
+            Intent.ACTION_TIME_CHANGED == action ||
+            Intent.ACTION_TIMEZONE_CHANGED == action) {
             NativeOverlayScheduler.restoreAllSchedulesAfterBoot(context)
             NativeBasicNotificationScheduler.restoreAllSchedulesAfterBoot(context)
         }
