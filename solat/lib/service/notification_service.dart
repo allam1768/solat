@@ -1,7 +1,7 @@
+import 'dart:io';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
 class NotificationService {
@@ -48,6 +48,10 @@ class NotificationService {
 
   // ✅ Initialize WITHOUT auto-requesting permission
   Future<void> initialize() async {
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      debugPrint('NotificationService: Skipped on desktop/non-mobile');
+      return;
+    }
     try {
       await AwesomeNotifications().initialize(
         'resource://drawable/ic_notification',
@@ -109,6 +113,7 @@ class NotificationService {
     required String maghribTime,
     required String ishaTime,
   }) async {
+    if (!Platform.isAndroid && !Platform.isIOS) return;
     try {
       final profile =
           _storage.read('reminderProfile') ?? 1; // 0 = Basic, 1 = Smart
@@ -138,12 +143,17 @@ class NotificationService {
         if (startTime == '--:--' || startTime == 'Error') return;
 
         // 1. Start Time
-        String prayerKey = title.toLowerCase();
-        String translatedName = prayerKey.tr;
+        String translatedName = title == 'Fajr'
+            ? 'Subuh'
+            : (title == 'Dhuhr'
+                ? 'Dzuhur'
+                : (title == 'Asr'
+                    ? 'Ashar'
+                    : (title == 'Maghrib'
+                        ? 'Maghrib'
+                        : (title == 'Isha' ? 'Isya' : title))));
         String finalTitle = translatedName;
-        String finalBody = Get.locale?.languageCode == 'id'
-            ? 'Sudah masuk waktu sholat $translatedName.'
-            : 'It\'s time for $translatedName prayer.';
+        String finalBody = 'udah masuk waktu sholat $translatedName.';
 
         Map<String, dynamic> scheduleData = {
           'id': baseId + 1,
@@ -153,10 +163,8 @@ class NotificationService {
         };
 
         if (title == 'Dhuhr') {
-          scheduleData['fridayTitle'] = 'friday_prayer'.tr;
-          scheduleData['fridayBody'] = Get.locale?.languageCode == 'id'
-              ? 'Sudah masuk waktu sholat Jum\'at.'
-              : 'It\'s time for Friday prayer.';
+          scheduleData['fridayTitle'] = 'Jumatan';
+          scheduleData['fridayBody'] = 'udah masuk waktu sholat Jumat.';
         }
 
         nativeSchedules.add(scheduleData);
@@ -168,8 +176,8 @@ class NotificationService {
           if (minus50Time != null) {
             nativeSchedules.add({
               'id': baseId + 4,
-              'title': '${'friday_prep_title'.tr} (50m)',
-              'body': 'friday_prep_body'.tr,
+              'title': 'persiapan sholat Jumat (50m)',
+              'body': 'yuk bersiap untuk sholat Jumat.',
               'time': minus50Time,
             });
           }
@@ -179,10 +187,8 @@ class NotificationService {
           if (minus30PrepTime != null) {
             nativeSchedules.add({
               'id': baseId + 5,
-              'title': '${'friday_prep_title'.tr} (30m)',
-              'body': Get.locale?.languageCode == 'id'
-                  ? '30 menit lagi waktu Jumatan. Yuk berangkat ke Masjid!'
-                  : '30 minutes until Friday prayer. Time to go to the mosque!',
+              'title': 'persiapan sholat Jumat (30m)',
+              'body': '30 menit lagi waktu Jumatan. yuk berangkat ke masjid!',
               'time': minus30PrepTime,
             });
           }
@@ -191,12 +197,8 @@ class NotificationService {
         // 2. +30 Minutes
         final plus30Time = _addMinutes(startTime, 30);
         if (plus30Time != null) {
-          String reminderTitle = Get.locale?.languageCode == 'id'
-              ? 'Pengingat $translatedName'
-              : '$translatedName Reminder';
-          String reminderBody = Get.locale?.languageCode == 'id'
-              ? 'Sudah 30 menit sejak waktu $translatedName dimulai.'
-              : '30 minutes have passed since $translatedName started.';
+          String reminderTitle = 'pengingat sholat $translatedName';
+          String reminderBody = 'udah 30 menit sejak waktu sholat $translatedName dimulai.';
 
           Map<String, dynamic> reminderData = {
             'id': baseId + 2,
@@ -206,12 +208,8 @@ class NotificationService {
           };
 
           if (title == 'Dhuhr') {
-            reminderData['fridayTitle'] = Get.locale?.languageCode == 'id'
-                ? 'Pengingat Jumatan'
-                : 'Friday Prayer Reminder';
-            reminderData['fridayBody'] = Get.locale?.languageCode == 'id'
-                ? 'Sudah 30 menit sejak waktu Jum\'at dimulai.'
-                : '30 minutes have passed since Friday prayer started.';
+            reminderData['fridayTitle'] = 'pengingat Jumatan';
+            reminderData['fridayBody'] = 'udah 30 menit sejak waktu sholat Jumat dimulai.';
           }
 
           nativeSchedules.add(reminderData);
@@ -222,12 +220,8 @@ class NotificationService {
           if (title == 'Isha') {
             final plus60Time = _addMinutes(startTime, 60);
             if (plus60Time != null) {
-              String endingTitle = Get.locale?.languageCode == 'id'
-                  ? 'Waktu $translatedName Akan Habis'
-                  : '$translatedName Ending Soon';
-              String endingBody = Get.locale?.languageCode == 'id'
-                  ? 'Sudah 60 menit sejak $translatedName dimulai. Yuk sholat Isya sekarang.'
-                  : 'It has been 60 minutes since $translatedName started. Please pray Isha soon.';
+              String endingTitle = 'waktu sholat $translatedName';
+              String endingBody = 'udah 60 menit sejak $translatedName dimulai. yuk sholat Isya sekarang.';
 
               nativeSchedules.add({
                 'id': baseId + 3,
@@ -241,12 +235,8 @@ class NotificationService {
               endTime != 'Error') {
             final minus30Time = _addMinutes(endTime, -30);
             if (minus30Time != null) {
-              String endingTitle = Get.locale?.languageCode == 'id'
-                  ? 'Waktu $translatedName Akan Habis'
-                  : '$translatedName Ending Soon';
-              String endingBody = Get.locale?.languageCode == 'id'
-                  ? 'Hanya tersisa 30 menit untuk waktu $translatedName.'
-                  : 'Only 30 minutes left for $translatedName prayer.';
+              String endingTitle = 'waktu sholat $translatedName mau habis';
+              String endingBody = 'tinggal 30 menit lagi buat waktu sholat $translatedName.';
 
               nativeSchedules.add({
                 'id': baseId + 3,

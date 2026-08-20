@@ -1,7 +1,12 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import '../core/widgets/app_button.dart';
 
 class LocationResult {
   final double? latitude;
@@ -28,6 +33,22 @@ class LocationService extends GetxService {
 
   Future<LocationResult> getCurrentLocation({bool silent = true}) async {
     try {
+      if (!silent) {
+        _hasShownDialog = false;
+      }
+      // ✅ Khusus Web/Desktop (Linux/Windows/macOS): Pakai default location agar tidak error missing plugin
+      if (kIsWeb || (!kIsWeb && !Platform.isAndroid && !Platform.isIOS)) {
+        return LocationResult(
+          latitude: -6.2088,
+          longitude: 106.8456,
+          cityName: 'Jakarta Selatan',
+          provinceName: 'DKI Jakarta',
+          isoCountryCode: 'ID',
+          hasError: false,
+        );
+      }
+
+      // ✅ Android / iOS Native: Pakai real GPS & Geocoding 100%
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (!silent && !_hasShownDialog) {
@@ -35,9 +56,9 @@ class LocationService extends GetxService {
         }
         return LocationResult(
           hasError: true,
-          errorMessage: 'location_services_off'.tr,
-          cityName: 'location_services_off_short',
-          provinceName: 'tap_to_enable',
+          errorMessage: 'lokasi belum aktif',
+          cityName: 'lokasi mati',
+          provinceName: 'tap buat nyalain',
         );
       }
 
@@ -48,9 +69,9 @@ class LocationService extends GetxService {
         }
         return LocationResult(
           hasError: true,
-          errorMessage: 'permission_required'.tr,
-          cityName: 'permission_required_short',
-          provinceName: 'tap_to_grant',
+          errorMessage: 'perlu izin lokasi',
+          cityName: 'butuh izin',
+          provinceName: 'tap buat izinkan',
         );
       }
 
@@ -60,9 +81,9 @@ class LocationService extends GetxService {
         }
         return LocationResult(
           hasError: true,
-          errorMessage: 'permission_denied'.tr,
-          cityName: 'permanent_denied_short',
-          provinceName: 'to_enable_permission',
+          errorMessage: 'izin lokasi ditolak',
+          cityName: 'izin mati',
+          provinceName: 'buka pengaturan',
         );
       }
 
@@ -74,20 +95,23 @@ class LocationService extends GetxService {
         ),
       );
 
-      debugPrint('📍 Position obtained: ${position.latitude}, ${position.longitude}');
-      
+      debugPrint(
+          '📍 Position obtained: ${position.latitude}, ${position.longitude}');
+
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
 
-      String city = 'city_not_found';
+      String city = 'Kota tidak ditemukan';
       String province = '';
       String countryCode = '';
 
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
-        city = place.subAdministrativeArea ?? place.locality ?? 'City not found';
+        city = place.subAdministrativeArea ??
+            place.locality ??
+            'Kota tidak ditemukan';
         province = place.administrativeArea ?? '';
         countryCode = place.isoCountryCode ?? '';
         debugPrint('📍 Location found: $city, $province ($countryCode)');
@@ -101,14 +125,13 @@ class LocationService extends GetxService {
         isoCountryCode: countryCode,
         hasError: false,
       );
-
     } catch (e) {
       debugPrint('❌ Error getting location: $e');
       return LocationResult(
         hasError: true,
-        errorMessage: '${'failed_to_load'.tr}: $e',
-        cityName: 'failed_to_load',
-        provinceName: 'tap_to_retry',
+        errorMessage: 'gagal memuat lokasi: $e',
+        cityName: 'gagal memuat',
+        provinceName: 'tap buat coba lagi',
       );
     }
   }
@@ -116,42 +139,45 @@ class LocationService extends GetxService {
   void _showGPSDialog() {
     _hasShownDialog = true;
     _showPremiumDialog(
-      title: 'location_services_off'.tr,
-      message: 'gps_off_desc'.tr,
+      title: 'lokasi belum aktif',
+      message:
+          'nyalain lokasi dulu yuk biar jadwal sholat dan arah kiblat kamu pas.',
       onConfirm: () async {
         Get.back();
         _hasShownDialog = false;
         await Geolocator.openLocationSettings();
       },
-      confirmText: 'open_settings'.tr,
+      confirmText: 'buka pengaturan',
     );
   }
 
   void _showPermissionRequestDialog() {
     _hasShownDialog = true;
     _showPremiumDialog(
-      title: 'permission_required'.tr,
-      message: 'permission_desc'.tr,
+      title: 'perlu izin lokasi',
+      message:
+          'izinin akses lokasi ya biar jadwal sholat di tempat kamu akurat.',
       onConfirm: () async {
         Get.back();
         _hasShownDialog = false;
         await Geolocator.requestPermission();
       },
-      confirmText: 'grant_permission'.tr,
+      confirmText: 'izinkan',
     );
   }
 
   void _showPermissionDialog() {
     _hasShownDialog = true;
     _showPremiumDialog(
-      title: 'permission_denied'.tr,
-      message: 'permission_denied_desc'.tr,
+      title: 'izin lokasi ditolak',
+      message:
+          'izin lokasi belum diaktifkan. buka pengaturan buat ngizinin ya.',
       onConfirm: () async {
         Get.back();
         _hasShownDialog = false;
         await Geolocator.openAppSettings();
       },
-      confirmText: 'open_settings'.tr,
+      confirmText: 'buka pengaturan',
     );
   }
 
@@ -173,11 +199,12 @@ class LocationService extends GetxService {
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: borderColor, width: 2),
+            borderRadius: BorderRadius.circular(30.h),
+            border: Border.all(color: borderColor, width: 4.w),
             boxShadow: [
               BoxShadow(
-                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
+                color: (isDark ? Colors.white : Colors.black)
+                    .withValues(alpha: 0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -186,13 +213,18 @@ class LocationService extends GetxService {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.location_on_outlined, size: 48, color: fgColor),
+              SvgPicture.asset(
+                'assets/icons/lokasi_icon.svg',
+                width: 48.sp,
+                height: 48.sp,
+                colorFilter: ColorFilter.mode(fgColor, BlendMode.srcIn),
+              ),
               const SizedBox(height: 20),
               Text(
                 title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 20.sp,
                   fontWeight: FontWeight.bold,
                   color: fgColor,
                 ),
@@ -202,8 +234,9 @@ class LocationService extends GetxService {
                 message,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 14,
-                  color: fgColor.withValues(alpha: 0.6),
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: fgColor,
                   height: 1.5,
                 ),
               ),
@@ -211,36 +244,26 @@ class LocationService extends GetxService {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: fgColor,
-                        side: BorderSide(color: borderColor, width: 1.5),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: () {
+                    child: AppButton.outlined(
+                      text: 'nanti aja',
+                      height: 48.h,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
+                      borderWidth: 4.w,
+                      onTap: () {
                         Get.back();
                         _hasShownDialog = false;
                       },
-                      child: Text('not_now'.tr, style: const TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12.w),
                   Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: fgColor,
-                        foregroundColor: bgColor,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: onConfirm,
-                      child: Text(confirmText, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    child: AppButton.filled(
+                      text: confirmText,
+                      height: 48.h,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
+                      onTap: onConfirm,
                     ),
                   ),
                 ],

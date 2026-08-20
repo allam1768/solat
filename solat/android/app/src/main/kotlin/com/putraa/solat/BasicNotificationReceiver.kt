@@ -1,4 +1,4 @@
-package com.example.solat
+package com.putraa.solat
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -20,7 +20,7 @@ class BasicNotificationReceiver : BroadcastReceiver() {
 
         if (action == ACTION_SHOW_NOTIFICATION) {
             val id = intent.getIntExtra(EXTRA_ID, -1)
-            val title = intent.getStringExtra(EXTRA_TITLE) ?: "Prayer Times"
+            val title = intent.getStringExtra(EXTRA_TITLE) ?: "waktu sholat"
             val body = intent.getStringExtra(EXTRA_BODY) ?: ""
 
             if (id != -1) {
@@ -40,10 +40,10 @@ class BasicNotificationReceiver : BroadcastReceiver() {
             if (existing == null) {
                 val channel = NotificationChannel(
                     channelId,
-                    "Prayer Times",
+                    "waktu sholat",
                     NotificationManager.IMPORTANCE_HIGH
                 ).apply {
-                    description = "Notifications for daily prayer times"
+                    description = "notifikasi jadwal waktu sholat harian"
                     setShowBadge(true)
                     enableLights(true)
                     enableVibration(true)
@@ -84,7 +84,7 @@ class BasicNotificationReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "BasicNotifReceiver"
-        const val ACTION_SHOW_NOTIFICATION = "com.example.solat.ACTION_SHOW_BASIC_NOTIFICATION"
+        const val ACTION_SHOW_NOTIFICATION = "com.putraa.solat.ACTION_SHOW_BASIC_NOTIFICATION"
         const val EXTRA_ID = "extra_id"
         const val EXTRA_TITLE = "extra_title"
         const val EXTRA_BODY = "extra_body"

@@ -1,4 +1,4 @@
-package com.example.solat
+package com.putraa.solat
 
 import android.content.BroadcastReceiver
 import android.content.Context

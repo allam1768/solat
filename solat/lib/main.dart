@@ -8,7 +8,6 @@ import 'package:solat/service/notification_service.dart';
 import 'package:solat/service/overlay_scheduler_service.dart';
 import 'package:solat/service/update_service.dart';
 import 'core/app_theme.dart';
-import 'core/localization/app_translations.dart';
 import 'routes/app_pages.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -71,9 +70,6 @@ class MyApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: isDarkTheme ? ThemeMode.dark : ThemeMode.light,
-          translations: AppTranslations(),
-          locale: Locale(storage.read('languageCode') ?? 'en', storage.read('countryCode') ?? 'US'),
-          fallbackLocale: const Locale('en', 'US'),
           initialRoute: AppPages.INITIAL,
           getPages: AppPages.routes,
           defaultTransition: Transition.fadeIn,

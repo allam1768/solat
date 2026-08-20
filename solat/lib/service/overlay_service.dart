@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class OverlayService {
   static final OverlayService _instance = OverlayService._internal();
@@ -159,7 +160,10 @@ class OverlayService {
     try {
       if (Platform.isAndroid) {
         final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
-        return hasPermission ;
+        if (hasPermission == true) return true;
+        
+        final status = await Permission.systemAlertWindow.status;
+        return status.isGranted;
       }
       return true;
     } catch (e) {

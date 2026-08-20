@@ -18,8 +18,8 @@ class SplashScreen extends GetView<SplashController> {
       body: Center(
         child: SvgPicture.asset(
           'assets/icons/logo.svg',
-          width: 100.w,
-          height: 100.w,
+          width: 140.w,
+          height: 140.w,
           fit: BoxFit.contain,
           colorFilter: ColorFilter.mode(
             colorScheme.onSurface,

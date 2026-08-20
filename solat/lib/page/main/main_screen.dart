@@ -23,6 +23,7 @@ class MainScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: Obx(() => pages[controller.currentIndex.value]),
       bottomNavigationBar: CustomBottomNav(),
     );

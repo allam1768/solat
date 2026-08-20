@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:solat/core/app_colors.dart';
 import '../home_controller.dart';
 
 class LocationCard extends GetView<HomeController> {
@@ -9,93 +11,135 @@ class LocationCard extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColors.white : AppColors.black;
+    final secondaryColor = isDark ? AppColors.lightGrey : AppColors.darkGrey;
 
     return Container(
-        height: 70.h,
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(15.r),
-          border: Border.all(
-            color: colorScheme.onSurface,
-            width: 1.5.w,
-          ),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30.r),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: Obx(() {
+          final hasData = !controller.isLoadingLocation.value &&
+              controller.cityName.value.isNotEmpty &&
+              controller.cityName.value != 'loading_location' &&
+              controller.locationError.value.isEmpty;
+
+          return InkWell(
             borderRadius: BorderRadius.circular(15.r),
-            onTap: () => controller.handleLocationTap(),
+            onTap: hasData
+                ? null
+                : (controller.isLoadingLocation.value
+                    ? null
+                    : () => controller.handleLocationTap()),
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Center(
-                child: Obx(() {
-                  if (controller.isLoadingLocation.value) {
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Shimmer.fromColors(
-                          baseColor: colorScheme.onSurface.withOpacity(0.1),
-                          highlightColor: colorScheme.onSurface.withOpacity(0.3),
-                          child: Icon(
-                            Icons.location_on_outlined,
-                            size: 26.sp,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Shimmer.fromColors(
-                          baseColor: colorScheme.onSurface.withOpacity(0.1),
-                          highlightColor: colorScheme.onSurface.withOpacity(0.3),
-                          child: Container(
-                            height: 20.h,
-                            width: 120.w,
-                            decoration: BoxDecoration(
-                              color: colorScheme.onSurface,
-                              borderRadius: BorderRadius.circular(4.r),
+              padding: EdgeInsets.only(top: 15.h),
+              child: Row(
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/lokasi_icon.svg',
+                    width: 26.sp,
+                    height: 26.sp,
+                    colorFilter: ColorFilter.mode(
+                      primaryColor,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Builder(builder: (context) {
+                      if (controller.isLoadingLocation.value) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Shimmer.fromColors(
+                              baseColor: isDark
+                                  ? AppColors.darkGrey
+                                  : AppColors.lightGrey,
+                              highlightColor: isDark
+                                  ? AppColors.neutral
+                                  : AppColors.white,
+                              child: Container(
+                                height: 14.h,
+                                width: 80.w,
+                                decoration: BoxDecoration(
+                                  color: primaryColor,
+                                  borderRadius: BorderRadius.circular(4.r),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
-                    );
-                  }
+                            SizedBox(height: 4.h),
+                            Shimmer.fromColors(
+                              baseColor: isDark
+                                  ? AppColors.darkGrey
+                                  : AppColors.lightGrey,
+                              highlightColor: isDark
+                                  ? AppColors.neutral
+                                  : AppColors.white,
+                              child: Container(
+                                height: 20.h,
+                                width: 140.w,
+                                decoration: BoxDecoration(
+                                  color: primaryColor,
+                                  borderRadius: BorderRadius.circular(30.r),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
 
-                  final displayText = controller.provinceName.value.isNotEmpty
-                      ? '${controller.cityName.value.tr}, ${controller.provinceName.value.tr}'
-                      : controller.cityName.value.tr;
+                      final rawCity = controller.cityName.value;
+                      final rawProvince = controller.provinceName.value;
 
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 26.sp,
-                        color: colorScheme.onSurface,
-                      ),
-                      SizedBox(width: 12.w),
-                      Flexible(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: 250.w, // Batasan maksimal lebar text
-                          ),
-                          child: Text(
-                            displayText,
+                      final city =
+                          (rawCity.isEmpty || rawCity == 'loading_location')
+                              ? 'lokasi'
+                              : rawCity;
+
+                      final province = rawProvince.isEmpty
+                          ? (rawCity.isEmpty ? 'tap buat muat ulang' : '')
+                          : rawProvince;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            city,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurface,
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w700,
+                              color: primaryColor,
                             ),
                           ),
-                        ),
-                      ),
-                    ],
-                  );
-                }),
+                          Text(
+                            province.isEmpty
+                                ? 'tekan untuk muat ulang'
+                                : province,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.w800,
+                              color: secondaryColor,
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                  ),
+                ],
               ),
             ),
-          ),
-        ));
+          );
+        }),
+      ),
+    );
   }
 }

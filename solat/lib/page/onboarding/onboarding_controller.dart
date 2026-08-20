@@ -11,20 +11,16 @@ import '../../routes/app_routes.dart';
 class OnboardingController extends GetxController with WidgetsBindingObserver {
   final OverlayService _overlayService = OverlayService();
   final NotificationService _notificationService = NotificationService();
-
   final _storage = GetStorage();
-
   final PageController pageController = PageController();
 
   var currentPage = 0.obs;
   var hasNotificationPermission = false.obs;
   var hasLocationPermission = false.obs;
-  var hasBatteryExemption = false.obs;
   var hasOverlayPermission = false.obs;
 
   var isRequestingNotification = false.obs;
   var isRequestingLocation = false.obs;
-  var isRequestingBattery = false.obs;
   var isRequestingOverlay = false.obs;
 
   var selectedGender = ''.obs; // 'male', 'female', or empty
@@ -52,7 +48,6 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
       // Reset semua loading states
       isRequestingNotification.value = false;
       isRequestingLocation.value = false;
-      isRequestingBattery.value = false;
       isRequestingOverlay.value = false;
 
       // Re-check semua permissions
@@ -71,11 +66,6 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
       hasLocationPermission.value = locationStatus.isGranted;
       debugPrint('📍 Location: ${hasLocationPermission.value}');
 
-      // Check battery permission
-      final batteryStatus = await Permission.ignoreBatteryOptimizations.status;
-      hasBatteryExemption.value = batteryStatus.isGranted;
-      debugPrint('🔋 Battery: ${hasBatteryExemption.value}');
-
       // Check overlay
       hasOverlayPermission.value = await _overlayService.hasOverlayPermission();
       debugPrint('📱 Overlay: ${hasOverlayPermission.value}');
@@ -83,7 +73,6 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
       debugPrint('❌ Error checking permissions: $e');
       hasNotificationPermission.value = false;
       hasLocationPermission.value = false;
-      hasBatteryExemption.value = false;
       hasOverlayPermission.value = false;
     }
   }
@@ -93,7 +82,7 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
   }
 
   void nextPage() {
-    if (currentPage.value < 6) {
+    if (currentPage.value < 3) {
       pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -124,27 +113,9 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
 
         if (hasNotificationPermission.value) {
           debugPrint('✅ Notification permission granted');
-          Fluttertoast.showToast(
-            msg: "Notification permission granted",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.BOTTOM,
-            backgroundColor: Colors.grey.shade200,
-            textColor: Colors.black,
-            fontSize: 16.0,
-          );
-
-          // nextPage() removed to fix auto-scroll bug
         }
     } catch (e) {
       debugPrint('❌ Error requesting notification permission: $e');
-      Fluttertoast.showToast(
-        msg: "Failed to request notification permission",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.grey.shade400,
-        textColor: Colors.black,
-        fontSize: 16.0,
-      );
     } finally {
       isRequestingNotification.value = false;
     }
@@ -164,26 +135,10 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
 
         if (hasLocationPermission.value) {
           debugPrint('✅ Location permission granted');
-          Fluttertoast.showToast(
-            msg: "Location permission granted",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.BOTTOM,
-            backgroundColor: Colors.grey.shade200,
-            textColor: Colors.black,
-            fontSize: 16.0,
-          );
-
-          // nextPage() removed to fix auto-scroll bug
+          
         } else {
         debugPrint('⚠️ Location permission denied');
-        Fluttertoast.showToast(
-          msg: "Location access helps calculate accurate prayer times",
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.grey.shade300,
-          textColor: Colors.black,
-          fontSize: 16.0,
-        );
+        
       }
     } catch (e) {
       debugPrint('❌ Error requesting location permission: $e');
@@ -200,61 +155,7 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> requestBatteryExemption() async {
-    if (isRequestingBattery.value) return;
 
-    isRequestingBattery.value = true;
-    debugPrint('🔋 Requesting battery exemption...');
-
-    try {
-      final status = await Permission.ignoreBatteryOptimizations.request();
-
-      debugPrint('🔋 Battery status after request: $status');
-
-        await Future.delayed(const Duration(milliseconds: 500));
-
-        final batteryStatus = await Permission.ignoreBatteryOptimizations.status;
-        hasBatteryExemption.value = batteryStatus.isGranted;
-
-        debugPrint('🔋 Battery exemption: ${hasBatteryExemption.value}');
-
-        if (hasBatteryExemption.value) {
-          debugPrint('✅ Battery exemption granted');
-          Fluttertoast.showToast(
-            msg: "Battery optimization disabled",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.BOTTOM,
-            backgroundColor: Colors.grey.shade200,
-            textColor: Colors.black,
-            fontSize: 16.0,
-          );
-
-          // nextPage() removed to fix auto-scroll bug
-        } else {
-        debugPrint('⚠️ Battery exemption denied or needs manual action');
-        Fluttertoast.showToast(
-          msg: "Please disable battery optimization manually in settings",
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.grey.shade300,
-          textColor: Colors.black,
-          fontSize: 16.0,
-        );
-      }
-    } catch (e) {
-      debugPrint('❌ Error requesting battery exemption: $e');
-      Fluttertoast.showToast(
-        msg: "Failed to request battery exemption",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.grey.shade400,
-        textColor: Colors.black,
-        fontSize: 16.0,
-      );
-    } finally {
-      isRequestingBattery.value = false;
-    }
-  }
 
   Future<void> requestOverlayPermission() async {
     if (isRequestingOverlay.value) return;
@@ -270,14 +171,7 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
         hasOverlayPermission.value = true;
         isRequestingOverlay.value = false;
 
-        Fluttertoast.showToast(
-          msg: "Overlay permission already granted",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.grey.shade200,
-          textColor: Colors.black,
-          fontSize: 16.0,
-        );
+        
 
         await Future.delayed(const Duration(milliseconds: 500));
         // nextPage() removed to fix auto-scroll bug
@@ -296,24 +190,14 @@ class OnboardingController extends GetxController with WidgetsBindingObserver {
       debugPrint('❌ Error requesting overlay permission: $e');
       isRequestingOverlay.value = false;
 
-      Fluttertoast.showToast(
-        msg: "Failed to open settings: $e",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.grey.shade400,
-        textColor: Colors.black,
-        fontSize: 16.0,
-      );
+      
     }
   }
 
   Future<void> completeOnboarding() async {
     try {
       await _storage.write('onboarding_completed', true);
-      if (selectedGender.value.isNotEmpty) {
-        await _storage.write('gender', selectedGender.value);
-      }
-      debugPrint('✅ Onboarding completed with gender: ${selectedGender.value}');
+      debugPrint('✅ Onboarding completed');
       await Future.delayed(const Duration(milliseconds: 300));
       Get.offAllNamed(AppRoutes.MAIN);
     } catch (e) {

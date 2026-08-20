@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:solat/core/widgets/app_button.dart';
 import 'dart:io';
+import 'overlay_service.dart';
 
 class PermissionHelper {
   static final PermissionHelper _instance = PermissionHelper._internal();
@@ -21,14 +24,21 @@ class PermissionHelper {
       final manufacturer = androidInfo.manufacturer.toLowerCase();
 
       final problematicOEMs = [
-        'xiaomi', 'redmi', 'poco',
-        'oppo', 'realme', 'oneplus',
-        'vivo', 'iqoo',
-        'huawei', 'honor',
+        'xiaomi',
+        'redmi',
+        'poco',
+        'oppo',
+        'realme',
+        'oneplus',
+        'vivo',
+        'iqoo',
+        'huawei',
+        'honor',
         'samsung'
       ];
 
-      final isProblematic = problematicOEMs.any((oem) => manufacturer.contains(oem));
+      final isProblematic =
+          problematicOEMs.any((oem) => manufacturer.contains(oem));
 
       return OEMInfo(
         manufacturer: androidInfo.manufacturer,
@@ -43,52 +53,39 @@ class PermissionHelper {
     }
   }
 
-  // Check all critical permissions
+  // Check all critical permissions (Location, Notification, Overlay)
   Future<ph.PermissionStatus> checkAllPermissions() async {
-    final results = {
-      'notification': await ph.Permission.notification.status,
-      'overlay': await ph.Permission.systemAlertWindow.status,
-      'scheduleExactAlarm': await ph.Permission.scheduleExactAlarm.status,
-      'ignoreBatteryOptimizations': await ph.Permission.ignoreBatteryOptimizations.status,
-    };
+    try {
+      final locationStatus = await ph.Permission.location.status;
+      final notificationStatus = await ph.Permission.notification.status;
+      final overlayStatus = await ph.Permission.systemAlertWindow.status;
+      final overlayWindowGranted = await OverlayService().hasOverlayPermission();
 
-    if (!results['notification']!.isGranted ||
-        !results['overlay']!.isGranted ||
-        !results['scheduleExactAlarm']!.isGranted) {
+      final isLocationGranted = locationStatus.isGranted;
+      final isNotificationGranted = notificationStatus.isGranted;
+      final isOverlayGranted = overlayStatus.isGranted || overlayWindowGranted;
+
+      // All 3 critical permissions (Location, Notification, Overlay) must be granted!
+      if (isLocationGranted && isNotificationGranted && isOverlayGranted) {
+        return ph.PermissionStatus.granted;
+      }
+
+      return ph.PermissionStatus.denied;
+    } catch (e) {
+      debugPrint('Error checking permissions: $e');
       return ph.PermissionStatus.denied;
     }
-
-    return ph.PermissionStatus.granted;
   }
 
   // Request all necessary permissions
   Future<bool> requestAllPermissions() async {
-    var notificationStatus = await ph.Permission.notification.request();
-    var overlayStatus = await ph.Permission.systemAlertWindow.request();
-    var alarmStatus = await ph.Permission.scheduleExactAlarm.request();
+    await ph.Permission.location.request();
+    await ph.Permission.notification.request();
+    await ph.Permission.systemAlertWindow.request();
+    await ph.Permission.scheduleExactAlarm.request();
 
-    final allGranted = notificationStatus.isGranted &&
-        overlayStatus.isGranted &&
-        alarmStatus.isGranted;
-
-    return allGranted;
-  }
-
-  // Request battery optimization exemption
-  Future<bool> requestBatteryOptimizationExemption() async {
-    try {
-      final status = await ph.Permission.ignoreBatteryOptimizations.status;
-
-      if (status.isGranted) {
-        return true;
-      }
-
-      final result = await ph.Permission.ignoreBatteryOptimizations.request();
-      return result.isGranted;
-    } catch (e) {
-      debugPrint('Error requesting battery exemption: $e');
-      return false;
-    }
+    final status = await checkAllPermissions();
+    return status == ph.PermissionStatus.granted;
   }
 
   // Show permission dialog with explanation
@@ -102,28 +99,64 @@ class PermissionHelper {
     String fullMessage = message;
 
     if (oemInfo.isProblematic && oemSpecificMessage != null) {
-      fullMessage += '\n\n⚠️ ${oemInfo.manufacturer.toUpperCase()} Device Detected:\n$oemSpecificMessage';
+      fullMessage +=
+          '\n\n⚠️ Perangkat ${oemInfo.manufacturer.toUpperCase()} Terdeteksi:\n$oemSpecificMessage';
     }
 
     return await Get.dialog<bool>(
-      AlertDialog(
-        title: Text(title),
-        content: SingleChildScrollView(
-          child: Text(fullMessage),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: const Text('Cancel'),
+          AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30.r),
+            ),
+            title: Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 20.sp,
+              ),
+            ),
+            content: SingleChildScrollView(
+              child: Text(
+                fullMessage,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  height: 1.4,
+                ),
+              ),
+            ),
+            actionsPadding:
+                EdgeInsets.only(left: 16.w, right: 16.w, bottom: 16.h),
+            actions: [
+              Row(
+                children: [
+                  Expanded(
+                    child: AppButton.outlined(
+                      text: 'nanti aja',
+                      onTap: () => Get.back(result: false),
+                      height: 48.h,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      borderRadius: 30.r,
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: AppButton.filled(
+                      text: 'lanjut',
+                      onTap: () => Get.back(result: true),
+                      height: 48.h,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      borderRadius: 30.r,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Get.back(result: true),
-            child: const Text('Continue'),
-          ),
-        ],
-      ),
-      barrierDismissible: false,
-    ) ?? false;
+          barrierDismissible: false,
+        ) ??
+        false;
   }
 
   // Open app settings
@@ -148,47 +181,50 @@ class OEMInfo {
     required this.isProblematic,
   });
 
-  String get deviceName => model != null ? '$manufacturer $model' : manufacturer;
+  String get deviceName =>
+      model != null ? '$manufacturer $model' : manufacturer;
 
   String get oemGuidance {
     final mfr = manufacturer.toLowerCase();
 
-    if (mfr.contains('xiaomi') || mfr.contains('redmi') || mfr.contains('poco')) {
+    if (mfr.contains('xiaomi') ||
+        mfr.contains('redmi') ||
+        mfr.contains('poco')) {
       return '''
-Xiaomi/MIUI Settings:
-1. Settings → Apps → Manage Apps → Solat
-2. Autostart → Enable
-3. Battery Saver → No restrictions
-4. Other permissions → Display pop-up windows → Enable
-5. Notifications → Enable all
+Pengaturan Xiaomi/MIUI:
+1. Pengaturan → Aplikasi → Kelola Aplikasi → Solat
+2. Mulai otomatis (Autostart) → Aktifkan
+3. Penghemat baterai → Tanpa pembatasan
+4. Izin lainnya → Tampilkan jendela pop-up → Aktifkan
+5. Notifikasi → Aktifkan semua
 ''';
     } else if (mfr.contains('oppo') || mfr.contains('realme')) {
       return '''
-Oppo/Realme Settings:
-1. Settings → Battery → High Background Consumption → Enable
-2. Settings → Apps → Solat → Allow "Display over other apps"
-3. Settings → Privacy → Startup Manager → Enable Solat
+Pengaturan Oppo/Realme:
+1. Pengaturan → Baterai → Penggunaan Latar Belakang Tinggi → Aktifkan
+2. Pengaturan → Aplikasi → Solat → Izinkan "Tampil di atas aplikasi lain"
+3. Pengaturan → Privasi → Manajer Mulai → Aktifkan Solat
 ''';
     } else if (mfr.contains('vivo')) {
       return '''
-Vivo Settings:
-1. Settings → Battery → Background Battery Consumption Management → Solat → High
-2. Settings → More Settings → Permission Management → Autostart → Enable
+Pengaturan Vivo:
+1. Pengaturan → Baterai → Pengelolaan Konsumsi Baterai Latar Belakang → Solat → Tinggi
+2. Pengaturan → Pengaturan Lainnya → Manajer Izin → Mulai Otomatis → Aktifkan
 ''';
     } else if (mfr.contains('samsung')) {
       return '''
-Samsung Settings:
-1. Settings → Battery → Background usage limits → Never sleeping apps → Add Solat
-2. Settings → Apps → Solat → Battery → Unrestricted
+Pengaturan Samsung:
+1. Pengaturan → Baterai → Batas penggunaan latar belakang → Aplikasi yang tidak pernah tidur → Tambahkan Solat
+2. Pengaturan → Aplikasi → Solat → Baterai → Tidak dibatasi
 ''';
     } else if (mfr.contains('huawei') || mfr.contains('honor')) {
       return '''
-Huawei/Honor Settings:
-1. Settings → Apps → Solat → Battery → Enable "Run in background"
-2. Settings → Battery → App Launch → Solat → Manage manually (enable all)
+Pengaturan Huawei/Honor:
+1. Pengaturan → Aplikasi → Solat → Baterai → Izinkan "Jalan di latar belakang"
+2. Pengaturan → Baterai → Peluncuran Aplikasi → Solat → Kelola secara manual (aktifkan semua)
 ''';
     }
 
-    return 'Follow standard Android permission settings.';
+    return 'Ikuti pengaturan izin standar Android.';
   }
 }

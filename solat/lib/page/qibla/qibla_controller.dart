@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_compass/flutter_compass.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:vibration/vibration.dart';
 import '../../service/location_service.dart';
 import '../main/main_controller.dart';
 
-class QiblaController extends GetxController with GetSingleTickerProviderStateMixin, WidgetsBindingObserver {
+class QiblaController extends GetxController
+    with GetSingleTickerProviderStateMixin, WidgetsBindingObserver {
   final LocationService _locationService = Get.find<LocationService>();
 
   var rotation = 0.0.obs;
@@ -24,7 +26,7 @@ class QiblaController extends GetxController with GetSingleTickerProviderStateMi
   late AnimationController animationController;
   late Animation<double> rotationAnimation;
   double targetRotation = 0.0;
-  
+
   // Vibration debounce
   DateTime? _lastVibrationTime;
 
@@ -49,20 +51,22 @@ class QiblaController extends GetxController with GetSingleTickerProviderStateMi
     ).animate(CurvedAnimation(
       parent: animationController,
       curve: Curves.easeInOut, // Smooth easing
-    ))..addListener(() {
-      rotation.value = rotationAnimation.value;
-    });
+    ))
+      ..addListener(() {
+        rotation.value = rotationAnimation.value;
+      });
 
     // ✅ Tambahkan observer lifecycle
     WidgetsBinding.instance.addObserver(this);
-    
+
     initQibla();
 
     // ✅ Listen to MainController tab changes to pause/resume compass
     if (Get.isRegistered<MainController>()) {
       final mainController = Get.find<MainController>();
       ever(mainController.currentIndex, (index) {
-        if (index == 1) { // 1 is Qibla tab
+        if (index == 1) {
+          // 1 is Qibla tab
           if (compassSubscription == null && !isLoading.value) {
             debugPrint('Qibla: Switched to Qibla tab, restarting compass');
             listenToCompass();
@@ -79,23 +83,26 @@ class QiblaController extends GetxController with GetSingleTickerProviderStateMi
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    
-    // ✅ BUG FIX: Hentikan sensor/vibrasi saat app di background
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+
+    // ✅ Only pause when app is fully backgrounded (AppLifecycleState.paused)
+    // Avoid canceling on AppLifecycleState.inactive (triggered by Control Center / Notification Shade)
+    if (state == AppLifecycleState.paused) {
       debugPrint('Qibla: App paused, stopping compass subscription');
       compassSubscription?.cancel();
       compassSubscription = null;
     } else if (state == AppLifecycleState.resumed) {
-      debugPrint('Qibla: App resumed, restarting compass');
-      listenToCompass();
+      if (compassSubscription == null && !isLoading.value) {
+        debugPrint('Qibla: App resumed, restarting compass');
+        listenToCompass();
+      }
     }
   }
 
   @override
   void onClose() {
-    WidgetsBinding.instance.removeObserver(this); // ✅ Lepas observer
+    WidgetsBinding.instance.removeObserver(this);
     compassSubscription?.cancel();
-    animationController.dispose(); // ✅ Don't forget to dispose
+    animationController.dispose();
     super.onClose();
   }
 
@@ -106,10 +113,12 @@ class QiblaController extends GetxController with GetSingleTickerProviderStateMi
 
       // Get user location directly from LocationService
       final result = await _locationService.getCurrentLocation(silent: false);
-      
+
       if (result.hasError || result.latitude == null) {
         isLoading.value = false;
-        errorMessage.value = result.errorMessage.isNotEmpty ? result.errorMessage : "Gagal mendapatkan lokasi. Pastikan GPS menyala.";
+        errorMessage.value = result.errorMessage.isNotEmpty
+            ? result.errorMessage
+            : "Gagal mendapatkan lokasi. Pastikan GPS menyala.";
         return;
       }
 
@@ -121,8 +130,8 @@ class QiblaController extends GetxController with GetSingleTickerProviderStateMi
       qiblaDirection.value = qibla;
 
       // Get location name
-      locationName.value = result.provinceName.isNotEmpty 
-          ? '${result.cityName}, ${result.provinceName}' 
+      locationName.value = result.provinceName.isNotEmpty
+          ? '${result.cityName}, ${result.provinceName}'
           : result.cityName;
 
       // Start listening to compass
@@ -158,10 +167,11 @@ class QiblaController extends GetxController with GetSingleTickerProviderStateMi
   }
 
   void listenToCompass() {
+    compassSubscription?.cancel();
     compassSubscription = FlutterCompass.events?.listen((CompassEvent event) {
       if (event.heading != null) {
         phoneHeading.value = event.heading!;
-        
+
         // Cek akurasi kompas. Jika null atau error derajat lebih dari 15°, minta user kalibrasi
         final acc = event.accuracy;
         needsCalibration.value = (acc == null || acc > 15.0);
@@ -178,65 +188,56 @@ class QiblaController extends GetxController with GetSingleTickerProviderStateMi
 
         _checkHapticFeedback(needleRotation);
 
-        // ✅ SMOOTH ANIMATION - Animate dari current ke target
-        _animateToRotation(needleRotation);
+        // ✅ Smooth lerp interpolation tanpa reset animation controller di setiap tick sensor
+        _updateRotationSmoothly(needleRotation);
       }
     });
   }
-  
+
   void _checkHapticFeedback(double currentRot) async {
-      // Tolleransi 2 derajat
-      bool isNearQibla = (currentRot <= 2 || currentRot >= 358);
-      
-      if (isNearQibla) {
-          bool canVibrate = true;
-          if (_lastVibrationTime != null) {
-              final diff = DateTime.now().difference(_lastVibrationTime!);
-              if (diff.inSeconds < 2) {
-                  canVibrate = false;
-              }
-          }
-          
-          if (canVibrate) {
-              _lastVibrationTime = DateTime.now();
-              // Try to vibrate
-              bool? hasVibrator = await Vibration.hasVibrator();
-              if (hasVibrator == true) {
-                  Vibration.vibrate(pattern: [0, 40, 50, 40]); // Double tap haptic feel
-              }
-          }
+    // Tolleransi 2 derajat
+    bool isNearQibla = (currentRot <= 2 || currentRot >= 358);
+
+    if (isNearQibla) {
+      bool canVibrate = true;
+      if (_lastVibrationTime != null) {
+        final diff = DateTime.now().difference(_lastVibrationTime!);
+        if (diff.inSeconds < 2) {
+          canVibrate = false;
+        }
       }
+
+      if (canVibrate) {
+        _lastVibrationTime = DateTime.now();
+        // Try to vibrate
+        bool? hasVibrator = await Vibration.hasVibrator();
+        if (hasVibrator == true) {
+          Vibration.vibrate(pattern: [0, 40, 50, 40]); // Double tap haptic feel
+        }
+      }
+    }
   }
 
-  // ✅ Helper method untuk smooth rotation
-  void _animateToRotation(double newRotation) {
-    // Cari path terpendek (clockwise atau counter-clockwise)
+  // ✅ Smooth shortest path lerp interpolation for 50Hz sensor events
+  void _updateRotationSmoothly(double newRotation) {
     double currentRotation = rotation.value;
     double diff = newRotation - currentRotation;
 
-    // Normalize difference to -180 to 180 (shortest path)
+    // Shortest path (-180 to 180)
     if (diff > 180) {
       diff -= 360;
     } else if (diff < -180) {
       diff += 360;
     }
 
-    targetRotation = currentRotation + diff;
+    // Direct smooth lerp (0.3 factor)
+    double nextRotation = currentRotation + (diff * 0.3);
+    nextRotation = nextRotation % 360;
+    if (nextRotation < 0) {
+      nextRotation += 360;
+    }
 
-    // Update tween animation
-    rotationAnimation = Tween<double>(
-      begin: currentRotation,
-      end: targetRotation,
-    ).animate(CurvedAnimation(
-      parent: animationController,
-      curve: Curves.easeInOut,
-    ))..addListener(() {
-      rotation.value = rotationAnimation.value % 360;
-    });
-
-    // Start animation from 0
-    animationController.reset();
-    animationController.forward();
+    rotation.value = nextRotation;
   }
 
   // Manual refresh
@@ -244,5 +245,11 @@ class QiblaController extends GetxController with GetSingleTickerProviderStateMi
   Future<void> refresh() async {
     compassSubscription?.cancel();
     await initQibla();
+  }
+
+  // Open App Settings directly
+  Future<void> openAppSettings() async {
+    await Geolocator.openAppSettings();
+    await refresh();
   }
 }

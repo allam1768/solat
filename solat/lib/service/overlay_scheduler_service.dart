@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'native_overlay_channel.dart';
@@ -27,6 +28,7 @@ class OverlaySchedulerService {
     required String maghribTime,
     required String ishaTime,
   }) async {
+    if (!Platform.isAndroid) return;
     final profile = _storage.read('reminderProfile') ?? 1;
 
     // GENTLE mode (0) TIDAK pakai overlay

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:solat/core/app_colors.dart';
 import '../home_controller.dart';
 
 class PrayerItem extends GetView<HomeController> {
@@ -20,55 +21,55 @@ class PrayerItem extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inactiveColor = isDark ? AppColors.white : AppColors.black;
+    final activeBgColor = isDark ? AppColors.white : AppColors.black;
+    final activeFgColor = isDark ? AppColors.black : AppColors.white;
 
     return Obx(() {
       final isActive = controller.currentPrayerKey.value == prayerKey;
 
+      final fgColor = isActive ? activeFgColor : inactiveColor;
+      final bgColor = isActive ? activeBgColor : Colors.transparent;
+
       return AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
-        height: 50.h,
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
+        height: 60.h,
+        padding: EdgeInsets.symmetric(horizontal: 25.w, vertical: 13.h),
         decoration: BoxDecoration(
-          color: isActive
-              ? colorScheme.onSurface.withValues(alpha: 0.15)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(15.r),
-          border: Border.all(
-            color: isActive ? colorScheme.onSurface : Colors.transparent,
-            width: 2.w,
-          ),
+          color: bgColor,
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             SizedBox(
-              width: 32.w,
-              height: 32.h,
+              width: 34.w,
+              height: 34.h,
               child: SvgPicture.asset(
                 'assets/icons/$iconPath',
                 colorFilter: ColorFilter.mode(
-                  colorScheme.onSurface,
+                  fgColor,
                   BlendMode.srcIn,
                 ),
               ),
             ),
+            SizedBox(width: 14.w),
             Text(
               name,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                fontSize: isActive ? 18.sp : 16.sp,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                color: isActive ? colorScheme.onSurface : colorScheme.onSurface,
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w700,
+                color: fgColor,
               ),
             ),
+            const Spacer(),
             Text(
               time,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                fontSize: isActive ? 18.sp : 16.sp,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                color: isActive ? colorScheme.onSurface : colorScheme.onSurface,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w800,
+                color: fgColor,
               ),
             ),
           ],

@@ -1,4 +1,4 @@
-package com.example.solat
+package com.putraa.solat
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -53,7 +53,7 @@ object NativeOverlayScheduler {
                     baseTime = sunrise,
                     offsetMinutes = -30,
                     prayerName = "Subuh",
-                    message = "Fajr time will end in 30 minutes!\nPlease pray Fajr soon.",
+                    message = "waktu Subuh sisa 30 menit lagi nih.\nsempatin sholat dulu, yuk.",
                     nextPrayerName = "Sunrise",
                     nextPrayerTime = sunrise
                 )
@@ -65,7 +65,7 @@ object NativeOverlayScheduler {
                     baseTime = asr,
                     offsetMinutes = -30,
                     prayerName = "Dzuhur",
-                    message = "Dhuhr time will end in 30 minutes!\nPlease pray Dhuhr soon.",
+                    message = "waktu Dzuhur sisa 30 menit lagi nih.\nsempatin sholat dulu, yuk.",
                     nextPrayerName = "Ashar",
                     nextPrayerTime = asr
                 )
@@ -77,7 +77,7 @@ object NativeOverlayScheduler {
                     baseTime = maghrib,
                     offsetMinutes = -30,
                     prayerName = "Ashar",
-                    message = "Asr time will end in 30 minutes!\nPlease pray Asr soon.",
+                    message = "waktu Ashar sisa 30 menit lagi nih.\nsempatin sholat dulu, yuk.",
                     nextPrayerName = "Maghrib",
                     nextPrayerTime = maghrib
                 )
@@ -89,7 +89,7 @@ object NativeOverlayScheduler {
                     baseTime = isha,
                     offsetMinutes = -30,
                     prayerName = "Maghrib",
-                    message = "Maghrib time will end in 30 minutes!\nPlease pray Maghrib soon.",
+                    message = "waktu Maghrib sisa 30 menit lagi nih.\nsempatin sholat dulu, yuk.",
                     nextPrayerName = "Isya",
                     nextPrayerTime = isha
                 )
@@ -101,7 +101,7 @@ object NativeOverlayScheduler {
                     baseTime = isha,
                     offsetMinutes = 60,
                     prayerName = "Isya",
-                    message = "It has been 60 minutes since Isha started.\nPlease pray Isha soon.",
+                    message = "udah 60 menit sejak waktu Isya dimulai.\nyuk sholat Isya sekarang.",
                     nextPrayerName = "Subuh",
                     nextPrayerTime = fajr
                 )
@@ -194,7 +194,7 @@ object NativeOverlayScheduler {
 
         // Ambil data yang tersimpan untuk melengkapi intent snooze
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val message = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX", "It's time") ?: "It's time"
+        val message = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX", "udah masuk waktu sholat") ?: "udah masuk waktu sholat"
         val nextName = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_NAME_SUFFIX", "") ?: ""
         val nextTime = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_TIME_SUFFIX", "") ?: ""
         val baseTime = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_BASE_TIME_SUFFIX", "") ?: ""
@@ -345,8 +345,8 @@ object NativeOverlayScheduler {
         val minute = prefs.getInt(minKey, -1)
         if (hour !in 0..23 || minute !in 0..59) return
 
-        val prayerName = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_PRAYER_SUFFIX", "Prayer") ?: "Prayer"
-        val message = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX", "It's time") ?: "It's time"
+        val prayerName = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_PRAYER_SUFFIX", "sholat") ?: "sholat"
+        val message = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX", "udah masuk waktu sholat") ?: "udah masuk waktu sholat"
         val nextPrayerName = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_NAME_SUFFIX", "") ?: ""
         val nextPrayerTime = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_TIME_SUFFIX", "") ?: ""
         val baseTime = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_BASE_TIME_SUFFIX", "") ?: ""
@@ -386,8 +386,8 @@ object NativeOverlayScheduler {
             return
         }
 
-        val prayerName = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_PRAYER_SUFFIX", "Prayer") ?: "Prayer"
-        val message = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX", "It's time") ?: "It's time"
+        val prayerName = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_PRAYER_SUFFIX", "sholat") ?: "sholat"
+        val message = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_MSG_SUFFIX", "udah masuk waktu sholat") ?: "udah masuk waktu sholat"
         val nextPrayerName = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_NAME_SUFFIX", "") ?: ""
         val nextPrayerTime = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_NEXT_TIME_SUFFIX", "") ?: ""
         val baseTime = prefs.getString("$KEY_SCHED_PREFIX$requestCode$KEY_SCHED_BASE_TIME_SUFFIX", "") ?: ""

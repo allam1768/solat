@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:solat/core/app_colors.dart';
 import '../home_controller.dart';
 import 'prayer_item.dart';
 import 'sunrise_item.dart';
@@ -10,73 +11,68 @@ class PrayerScheduleCard extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppColors.black : AppColors.white;
+    final borderColor = isDark ? AppColors.white : AppColors.black;
+    final titleColor = isDark ? AppColors.white : AppColors.black;
 
     return Container(
-      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(30.r),
         border: Border.all(
-          color: colorScheme.onSurface,
-          width: 1.5.w,
+          color: borderColor,
+          width: 4.w,
         ),
-        color: colorScheme.surface,
+        color: cardBg,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'next_prayer'.tr,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 24.sp,
-              color: colorScheme.onSurface,
-            ),
-          ),
-          SizedBox(height: 30.h),
-
+          Padding(
+              padding: EdgeInsets.only(
+                top: 22.h,
+                left: 28.w,
+              ),
+              child: Text(
+                'jadwal sholat',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 24.sp,
+                  color: titleColor,
+                ),
+              )),
+          SizedBox(height: 20.h),
           Obx(() => PrayerItem(
-            iconPath: 'subuh.svg',
-            name: 'fajr'.tr,
-            prayerKey: 'fajr',
-            time: controller.fajrTime.value,
-          )),
-          SizedBox(height: 12.h),
-
+                iconPath: 'subuh.svg',
+                name: 'Subuh',
+                prayerKey: 'Subuh',
+                time: controller.fajrTime.value,
+              )),
           const SunriseItem(),
-          SizedBox(height: 12.h),
-
           Obx(() => PrayerItem(
-            iconPath: 'zuhur.svg',
-            name: controller.isFriday.value ? 'friday_prayer'.tr : 'dhuhr'.tr,
-            prayerKey: 'dhuhr',
-            time: controller.dhuhrTime.value,
-          )),
-          SizedBox(height: 24.h),
-
+                iconPath: 'zuhur.svg',
+                name: controller.isFriday.value ? 'Jumatan' : 'Dzuhur',
+                prayerKey: 'Dzuhur',
+                time: controller.dhuhrTime.value,
+              )),
           Obx(() => PrayerItem(
-            iconPath: 'ashar.svg',
-            name: 'asr'.tr,
-            prayerKey: 'asr',
-            time: controller.asrTime.value,
-          )),
-          SizedBox(height: 24.h),
-
+                iconPath: 'ashar.svg',
+                name: 'Ashar',
+                prayerKey: 'Ashar',
+                time: controller.asrTime.value,
+              )),
           Obx(() => PrayerItem(
-            iconPath: 'magrib.svg',
-            name: 'maghrib'.tr,
-            prayerKey: 'maghrib',
-            time: controller.maghribTime.value,
-          )),
-          SizedBox(height: 24.h),
-
+                iconPath: 'magrib.svg',
+                name: 'Maghrib',
+                prayerKey: 'Maghrib',
+                time: controller.maghribTime.value,
+              )),
           Obx(() => PrayerItem(
-            iconPath: 'isya.svg',
-            name: 'isha'.tr,
-            prayerKey: 'isha',
-            time: controller.ishaTime.value,
-          )),
+                iconPath: 'isya.svg',
+                name: 'Isya',
+                prayerKey: 'Isya',
+                time: controller.ishaTime.value,
+              )),
           SizedBox(height: 24.h),
         ],
       ),

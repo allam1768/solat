@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 
 import '../main_controller.dart';
@@ -24,13 +25,13 @@ class CustomBottomNav extends StatelessWidget {
           right: 135.w,
           bottom: 20.h,
         ),
-        padding: EdgeInsets.all(8.w),
+        padding: EdgeInsets.all(4.w),
         decoration: BoxDecoration(
           color: colorScheme.surface, // ✅ ikut theme
-          borderRadius: BorderRadius.circular(15.r),
+          borderRadius: BorderRadius.circular(100.r),
           border: Border.all(
             color: colorScheme.onSurface, // ✅ border ikut theme
-            width: 1.5.w,
+            width: 4.w,
           ),
         ),
         child: LayoutBuilder(
@@ -43,25 +44,25 @@ class CustomBottomNav extends StatelessWidget {
               children: [
                 SizedBox(
                   width: itemWidth,
-                  child: _NavItem(
+                  child: const _NavItem(
                     index: 0,
-                    icon: Icons.home_outlined,
+                    svgPath: 'assets/icons/home_icon.svg',
                   ),
                 ),
                 SizedBox(width: gap.w),
                 SizedBox(
                   width: itemWidth,
-                  child: _NavItem(
+                  child: const _NavItem(
                     index: 1,
-                    icon: Icons.explore_outlined,
+                    svgPath: 'assets/icons/qiblat_icon.svg',
                   ),
                 ),
                 SizedBox(width: gap.w),
                 SizedBox(
                   width: itemWidth,
-                  child: _NavItem(
+                  child: const _NavItem(
                     index: 2,
-                    icon: Icons.settings_outlined,
+                    svgPath: 'assets/icons/seting_icon.svg',
                   ),
                 ),
               ],
@@ -76,11 +77,11 @@ class CustomBottomNav extends StatelessWidget {
 class _NavItem extends StatelessWidget {
   const _NavItem({
     required this.index,
-    required this.icon,
+    required this.svgPath,
   });
 
   final int index;
-  final IconData icon;
+  final String svgPath;
 
   @override
   Widget build(BuildContext context) {
@@ -102,21 +103,19 @@ class _NavItem extends StatelessWidget {
               color: isActive
                   ? colorScheme.onSurface // ✅ active bg
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(10.r),
-              border: isActive
-                  ? null
-                  : Border.all(
-                      color: colorScheme.onSurface, // ✅ border ikut theme
-                      width: 1.5.w,
-                    ),
+              borderRadius: BorderRadius.circular(100.r),
             ),
             child: Center(
-              child: Icon(
-                icon,
-                size: 24.sp,
-                color: isActive
-                    ? colorScheme.surface // ✅ kebalik biar kontras
-                    : colorScheme.onSurface,
+              child: SvgPicture.asset(
+                svgPath,
+                width: 20.sp,
+                height: 20.sp,
+                colorFilter: ColorFilter.mode(
+                  isActive
+                      ? colorScheme.surface // ✅ kebalik biar kontras
+                      : colorScheme.onSurface,
+                  BlendMode.srcIn,
+                ),
               ),
             ),
           ),

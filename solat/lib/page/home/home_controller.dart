@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:solat/core/app_colors.dart';
 import '../../service/notification_service.dart';
 import '../../service/overlay_scheduler_service.dart';
 import '../../service/location_service.dart';
@@ -36,6 +38,10 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   var isFriday = false.obs;
 
   var currentPrayerKey = ''.obs;
+  var nextPrayerName = '--'.obs;
+  var nextPrayerTime = '--:--'.obs;
+  var qiblaDirectionText = '--°'.obs;
+
   DateTime? _lastFetchTime;
 
   double? latitude;
@@ -45,12 +51,12 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   Timer? _timer;
 
   Rx<Map<String, String>?> get prayerTimes => Rx<Map<String, String>?>({
-        'Fajr': fajrTime.value,
-        'Sunrise': sunriseTime.value,
-        'Dhuhr': dhuhrTime.value,
-        'Asr': asrTime.value,
+        'Subuh': fajrTime.value,
+        'Terbit': sunriseTime.value,
+        'Dzuhur': dhuhrTime.value,
+        'Ashar': asrTime.value,
         'Maghrib': maghribTime.value,
-        'Isha': ishaTime.value,
+        'Isya': ishaTime.value,
       });
 
   @override
@@ -73,8 +79,9 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       // ✅ Cek apakah sudah lewat 5 menit sejak fetch terakhir
       // Ini mencegah reload terus-terusan pas buka control panel atau pindah app bentar
-      if (_lastFetchTime == null || 
-          DateTime.now().difference(_lastFetchTime!) > const Duration(minutes: 5)) {
+      if (_lastFetchTime == null ||
+          DateTime.now().difference(_lastFetchTime!) >
+              const Duration(minutes: 5)) {
         Future.delayed(const Duration(milliseconds: 500), () {
           _requestLocationPermissionAndFetch();
         });
@@ -87,7 +94,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     locationError.value = '';
 
     final storage = GetStorage();
-    
+
     // 1. Try to load from cache first for immediate UI rendering & offline mode
     final cachedLat = storage.read<double>('last_lat');
     final cachedLng = storage.read<double>('last_lng');
@@ -101,7 +108,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       cityName.value = cachedCity ?? 'Offline Location';
       provinceName.value = cachedProvince ?? '';
       isoCountryCode = cachedIso;
-      
+
+      _updateQiblaDirection();
       // Calculate locally using Adhan (no internet needed)
       await _fetchPrayerTimes();
       isLoadingLocation.value = false;
@@ -111,7 +119,6 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     final result = await _locationService.getCurrentLocation(silent: true);
 
     if (result.hasError) {
-      // If fresh location fails (e.g. offline) and we don't have cache, show error
       if (cachedLat == null) {
         locationError.value = result.errorMessage;
         cityName.value = result.cityName;
@@ -128,6 +135,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     longitude = result.longitude;
     isoCountryCode = result.isoCountryCode;
 
+    _updateQiblaDirection();
+
     storage.write('last_lat', result.latitude);
     storage.write('last_lng', result.longitude);
     storage.write('last_city', result.cityName);
@@ -139,7 +148,6 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> handleLocationTap() async {
-
     if (locationError.value.isEmpty) {
       await refreshLocation();
       return;
@@ -160,8 +168,9 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     if (latitude == null || longitude == null) return;
 
     isLoadingPrayer.value = true;
-    final model =
-        await _prayerTimeService.fetchPrayerTimes(latitude!, longitude!, isoCountryCode: isoCountryCode);
+    final model = await _prayerTimeService.fetchPrayerTimes(
+        latitude!, longitude!,
+        isoCountryCode: isoCountryCode);
 
     fajrTime.value = model.fajr;
     sunriseTime.value = model.sunrise;
@@ -177,6 +186,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
       Future.delayed(const Duration(milliseconds: 100), () {
         _checkCurrentPrayer();
+        _updateNextPrayer();
       });
 
       await _scheduleNotifications();
@@ -200,14 +210,14 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         'Error',
         'Failed to enable notifications: $e',
         snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.black,
-        colorText: Colors.white,
+        backgroundColor: AppColors.black,
+        colorText: AppColors.white,
         borderRadius: 10,
         margin: const EdgeInsets.all(15),
         borderWidth: 1.5,
-        borderColor: Colors.white,
+        borderColor: AppColors.white,
         duration: const Duration(seconds: 3),
-        icon: const Icon(Icons.error_outline, color: Colors.white),
+        icon: const Icon(Icons.error_outline, color: AppColors.white),
       );
     }
   }
@@ -244,20 +254,119 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   void _updateTime() {
     DateTime now = DateTime.now();
     currentTime.value = DateFormat('HH:mm:ss').format(now);
-    
+
     // ✅ Lokalisasi Hari & Tanggal otomatis
-    String locale = Get.locale?.languageCode ?? 'en';
-    
+    String locale = 'id_ID';
+
     // Perlu initialize untuk locale tertentu jika belum
     initializeDateFormatting(locale);
-    
+
     currentDay.value = DateFormat('EEEE', locale).format(now);
     currentDate.value = DateFormat('d MMMM yyyy', locale).format(now);
-    
+
     // Update isFriday
     isFriday.value = now.weekday == DateTime.friday;
-    
+
     _checkCurrentPrayer();
+    _updateNextPrayer();
+  }
+
+  void _updateQiblaDirection() {
+    if (latitude == null || longitude == null) {
+      qiblaDirectionText.value = '--°';
+      return;
+    }
+    const double makkahLat = 21.4224779;
+    const double makkahLng = 39.8251832;
+
+    double lat1 = latitude! * pi / 180;
+    double lng1 = longitude! * pi / 180;
+    double lat2 = makkahLat * pi / 180;
+    double lng2 = makkahLng * pi / 180;
+
+    double dLng = lng2 - lng1;
+    double y = sin(dLng) * cos(lat2);
+    double x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLng);
+
+    double bearing = atan2(y, x);
+    double degrees = (bearing * 180 / pi + 360) % 360;
+
+    String cardinal = _getCardinalDirection(degrees);
+    qiblaDirectionText.value = '${degrees.toStringAsFixed(1)}° $cardinal';
+  }
+
+  String _getCardinalDirection(double degrees) {
+    double normalized = (degrees % 360 + 360) % 360;
+    if (normalized >= 337.5 || normalized < 22.5) return 'U';
+    if (normalized >= 22.5 && normalized < 67.5) return 'TL';
+    if (normalized >= 67.5 && normalized < 112.5) return 'T';
+    if (normalized >= 112.5 && normalized < 157.5) return 'TG';
+    if (normalized >= 157.5 && normalized < 202.5) return 'S';
+    if (normalized >= 202.5 && normalized < 247.5) return 'BD';
+    if (normalized >= 247.5 && normalized < 292.5) return 'B';
+    return 'BL';
+  }
+
+  void _updateNextPrayer() {
+    if (isLoadingPrayer.value ||
+        fajrTime.value == '--:--' ||
+        fajrTime.value == 'Error' ||
+        dhuhrTime.value == '--:--' ||
+        dhuhrTime.value == 'Error' ||
+        asrTime.value == '--:--' ||
+        asrTime.value == 'Error' ||
+        maghribTime.value == '--:--' ||
+        maghribTime.value == 'Error' ||
+        ishaTime.value == '--:--' ||
+        ishaTime.value == 'Error') {
+      nextPrayerName.value = '--';
+      nextPrayerTime.value = '--:--';
+      return;
+    }
+
+    try {
+      DateTime now = DateTime.now();
+      int currentMinutes = now.hour * 60 + now.minute;
+
+      int? fajrMinutes = _parseTimeToMinutes(fajrTime.value);
+      int? dhuhrMinutes = _parseTimeToMinutes(dhuhrTime.value);
+      int? asrMinutes = _parseTimeToMinutes(asrTime.value);
+      int? maghribMinutes = _parseTimeToMinutes(maghribTime.value);
+      int? ishaMinutes = _parseTimeToMinutes(ishaTime.value);
+
+      if (fajrMinutes == null ||
+          dhuhrMinutes == null ||
+          asrMinutes == null ||
+          maghribMinutes == null ||
+          ishaMinutes == null) {
+        nextPrayerName.value = '--';
+        nextPrayerTime.value = '--:--';
+        return;
+      }
+
+      if (currentMinutes < fajrMinutes) {
+        nextPrayerName.value = 'Subuh';
+        nextPrayerTime.value = fajrTime.value;
+      } else if (currentMinutes < dhuhrMinutes) {
+        nextPrayerName.value = isFriday.value ? 'Jumatan' : 'Dzuhur';
+        nextPrayerTime.value = dhuhrTime.value;
+      } else if (currentMinutes < asrMinutes) {
+        nextPrayerName.value = 'Ashar';
+        nextPrayerTime.value = asrTime.value;
+      } else if (currentMinutes < maghribMinutes) {
+        nextPrayerName.value = 'Maghrib';
+        nextPrayerTime.value = maghribTime.value;
+      } else if (currentMinutes < ishaMinutes) {
+        nextPrayerName.value = 'Isya';
+        nextPrayerTime.value = ishaTime.value;
+      } else {
+        nextPrayerName.value = 'Subuh';
+        nextPrayerTime.value = fajrTime.value;
+      }
+    } catch (e) {
+      nextPrayerName.value = '--';
+      nextPrayerTime.value = '--:--';
+    }
   }
 
   void _checkCurrentPrayer() {
@@ -295,22 +404,22 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       }
 
       if (currentMinutes >= fajrMinutes && currentMinutes < sunriseMinutes) {
-        currentPrayerKey.value = 'fajr';
+        currentPrayerKey.value = 'Subuh';
       } else if (currentMinutes >= sunriseMinutes &&
           currentMinutes < dhuhrMinutes) {
         currentPrayerKey.value = '';
       } else if (currentMinutes >= dhuhrMinutes &&
           currentMinutes < asrMinutes) {
-        currentPrayerKey.value = 'dhuhr';
+        currentPrayerKey.value = 'Dzuhur';
       } else if (currentMinutes >= asrMinutes &&
           currentMinutes < maghribMinutes) {
-        currentPrayerKey.value = 'asr';
+        currentPrayerKey.value = 'Ashar';
       } else if (currentMinutes >= maghribMinutes &&
           currentMinutes < ishaMinutes) {
-        currentPrayerKey.value = 'maghrib';
+        currentPrayerKey.value = 'Maghrib';
       } else if (currentMinutes >= ishaMinutes) {
         // ✅ Isya aktif dari waktu Isya sampai jam 23:59
-        currentPrayerKey.value = 'isha';
+        currentPrayerKey.value = 'Isya';
       } else if (currentMinutes < fajrMinutes) {
         // ✅ Setelah jam 00:00 sampai Subuh, tidak ada yang aktif (permintaan user)
         currentPrayerKey.value = '';

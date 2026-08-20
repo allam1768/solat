@@ -1,4 +1,4 @@
-package com.example.solat
+package com.putraa.solat
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -54,9 +54,9 @@ class PrayerOverlayService : Service() {
             return START_NOT_STICKY
         }
 
-        val prayerName = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_PRAYER_NAME) ?: "Prayer"
+        val prayerName = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_PRAYER_NAME) ?: "sholat"
         val message = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_MESSAGE)
-            ?: "It's time for $prayerName"
+            ?: "udah masuk waktu sholat $prayerName"
         val nextPrayerName = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_NAME) ?: ""
         val nextPrayerTime = intent.getStringExtra(PrayerAlarmReceiver.EXTRA_NEXT_PRAYER_TIME) ?: ""
         val requestCode = intent.getIntExtra(PrayerAlarmReceiver.EXTRA_REQUEST_CODE, -1)
@@ -132,35 +132,37 @@ class PrayerOverlayService : Service() {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.parseColor("#99000000")) // 0.6 opacity
             gravity = Gravity.CENTER
-            setPadding(24.dp(), 0, 24.dp(), 0) // horizontal 24dp
+            setPadding(20.dp(), 0, 20.dp(), 0) // horizontal 20dp
         }
 
         // ========================================
         // CARD CONTAINER
         // ========================================
+        val screenWidth = resources.displayMetrics.widthPixels
+        val targetWidth = (screenWidth * 0.86).toInt().coerceIn(280.dp(), 380.dp())
+
         val card = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(20.dp(), 20.dp(), 20.dp(), 20.dp()) // padding 20dp
+            setPadding(24.dp(), 28.dp(), 24.dp(), 28.dp()) // padding 24dp horizontal, 28dp vertical
             gravity = Gravity.CENTER
 
-            // Constraints: maxWidth 340, minWidth 300
             layoutParams = LinearLayout.LayoutParams(
-                340.dp(), // maxWidth
+                targetWidth,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
 
-            // Rounded rectangle dengan border dan shadow
+            // Rounded rectangle dengan border 4dp dan cornerRadius 30dp
             val drawable = android.graphics.drawable.GradientDrawable().apply {
                 shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                 setColor(Color.WHITE)
-                cornerRadius = 15f.dp().toFloat() // 15dp rounded
-                setStroke(1.5f.dp(), Color.BLACK) // 1.5dp border
+                cornerRadius = 30f.dp().toFloat() // 30dp rounded
+                setStroke(4.dp(), Color.BLACK) // 4dp border
             }
             background = drawable
 
             // Shadow effect
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                elevation = 15f.dp().toFloat()
+                elevation = 12f.dp().toFloat()
             }
         }
 
@@ -168,9 +170,9 @@ class PrayerOverlayService : Service() {
         // LOGO ICON
         // ========================================
         val iconView = android.widget.ImageView(ctx).apply {
-            setImageResource(R.drawable.ic_moon_star) // Ganti ke logo.svg kalau sudah ada
-            setColorFilter(Color.BLACK) // ColorFilter mode srcIn
-            layoutParams = LinearLayout.LayoutParams(100.dp(), 100.dp())
+            setImageResource(R.drawable.ic_moon_star)
+            setColorFilter(Color.BLACK)
+            layoutParams = LinearLayout.LayoutParams(90.dp(), 90.dp())
         }
 
         // ========================================
@@ -178,11 +180,11 @@ class PrayerOverlayService : Service() {
         // ========================================
         val titleView = TextView(ctx).apply {
             text = prayerName
-            textSize = 24f
+            textSize = 28f
             setTextColor(Color.BLACK)
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
-            setPadding(0, 40.dp(), 0, 12.dp()) // top 40dp, bottom 12dp
+            setPadding(0, 24.dp(), 0, 12.dp())
         }
 
         // ========================================
@@ -192,16 +194,14 @@ class PrayerOverlayService : Service() {
             if (prayerName == "Isya") {
                 val diff = getMinutesDifference(baseTime, isPast = true)
                 if (diff >= 0) {
-                    val unit = if (diff == 1) "minute" else "minutes"
-                    "It has been $diff $unit since $prayerName started.\nPlease pray $prayerName soon."
+                    "udah $diff menit sejak waktu sholat $prayerName dimulai.\nyuk sholat $prayerName sekarang."
                 } else message
             } else {
                 val diff = getMinutesDifference(baseTime, isPast = false)
-                val unit = if (diff == 1) "minute" else "minutes"
                 when {
-                    diff > 0 -> "$prayerName time will end in $diff $unit!\nPlease pray $prayerName soon."
-                    diff == 0 -> "$prayerName time is ending now!\nPlease pray $prayerName immediately."
-                    else -> "$prayerName time has ended!\nPlease pray $prayerName as soon as possible."
+                    diff > 0 -> "waktu $prayerName sisa $diff menit lagi nih.\nsempatin sholat dulu, yuk."
+                    diff == 0 -> "waktu $prayerName bentar lagi habis! yuk\nburuan sholat biar nggak kelewat."
+                    else -> "waktu $prayerName udah habis!\nyuk sholat $prayerName sekarang."
                 }
             }
         } else {
@@ -210,11 +210,11 @@ class PrayerOverlayService : Service() {
 
         val messageView = TextView(ctx).apply {
             text = dynamicMessage
-            textSize = 13f
+            textSize = 14f
             setTextColor(Color.BLACK)
-            typeface = Typeface.create(Typeface.DEFAULT, 600, false) // fontWeight w600
+            typeface = Typeface.create(Typeface.DEFAULT, 600, false)
             gravity = Gravity.CENTER
-            setPadding(0, 0, 0, 40.dp()) // bottom 40dp
+            setPadding(0, 0, 0, 32.dp())
         }
 
         // ========================================
@@ -233,13 +233,13 @@ class PrayerOverlayService : Service() {
                 )
             }
 
-            // ✅ "I've prayed" BUTTON (Full Width)
+            // ✅ "udah solat" BUTTON (Filled Black, Full Width)
             val doneButton = Button(ctx).apply {
-                text = "I've prayed"
-                textSize = 14f
-                setTextColor(Color.BLACK)
-                typeface = Typeface.create(Typeface.DEFAULT, 600, false)
-                setPadding(0, 4.dp(), 0, 4.dp()) // vertical 4dp
+                text = "udah solat"
+                textSize = 15f
+                setTextColor(Color.WHITE)
+                typeface = Typeface.DEFAULT_BOLD
+                setPadding(0, 12.dp(), 0, 12.dp())
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -247,36 +247,34 @@ class PrayerOverlayService : Service() {
 
                 background = android.graphics.drawable.GradientDrawable().apply {
                     shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-                    setColor(Color.WHITE)
-                    cornerRadius = 10f.dp().toFloat()
-                    setStroke(2.dp(), Color.BLACK)
+                    setColor(Color.BLACK)
+                    cornerRadius = 30f.dp().toFloat()
                 }
 
                 isAllCaps = false
                 stateListAnimator = null
 
-                // ✅ Besok sudah auto-dijadwalkan saat overlay muncul, cukup tutup
                 setOnClickListener {
                     removeOverlay()
                     stopSelf()
                 }
             }
 
-            // ✅ Spacing 8dp
+            // ✅ Spacing 10dp
             val spacer1 = android.view.View(ctx).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    8.dp()
+                    10.dp()
                 )
             }
 
-            // ✅ "On my way" BUTTON (Full Width)
+            // ✅ "OTW" BUTTON (Outlined Black, Full Width)
             val onMyWayButton = Button(ctx).apply {
-                text = "On my way"
-                textSize = 14f
+                text = "OTW"
+                textSize = 15f
                 setTextColor(Color.BLACK)
-                typeface = Typeface.create(Typeface.DEFAULT, 600, false)
-                setPadding(0, 4.dp(), 0, 4.dp())
+                typeface = Typeface.DEFAULT_BOLD
+                setPadding(0, 12.dp(), 0, 12.dp())
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -285,26 +283,23 @@ class PrayerOverlayService : Service() {
                 background = android.graphics.drawable.GradientDrawable().apply {
                     shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                     setColor(Color.WHITE)
-                    cornerRadius = 10f.dp().toFloat()
-                    setStroke(2.dp(), Color.BLACK)
+                    cornerRadius = 30f.dp().toFloat()
+                    setStroke(3.dp(), Color.BLACK)
                 }
 
                 isAllCaps = false
                 stateListAnimator = null
 
-                // ✅ UPDATED: Cukup tutup overlay
                 setOnClickListener {
                     removeOverlay()
                     stopSelf()
                 }
             }
 
-            // Add all vertical buttons
             buttonsContainer.addView(doneButton)
             buttonsContainer.addView(spacer1)
             buttonsContainer.addView(onMyWayButton)
 
-            // Add to card
             card.addView(iconView)
             card.addView(titleView)
             card.addView(messageView)
@@ -324,45 +319,43 @@ class PrayerOverlayService : Service() {
                 )
             }
 
-            // ✅ "I've prayed" BUTTON
+            // ✅ "udah solat" BUTTON (Filled Black)
             val doneButton = Button(ctx).apply {
-                text = "I've prayed"
-                textSize = 14f
-                setTextColor(Color.BLACK)
-                typeface = Typeface.create(Typeface.DEFAULT, 600, false)
-                setPadding(0, 4.dp(), 0, 4.dp()) // vertical 4dp
+                text = "udah solat"
+                textSize = 15f
+                setTextColor(Color.WHITE)
+                typeface = Typeface.DEFAULT_BOLD
+                setPadding(0, 12.dp(), 0, 12.dp())
                 layoutParams = LinearLayout.LayoutParams(
                     0,
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     1f
                 ).apply {
-                    setMargins(0, 0, 12.dp(), 0) // spacing 12dp
+                    setMargins(0, 0, 10.dp(), 0)
                 }
 
                 background = android.graphics.drawable.GradientDrawable().apply {
                     shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-                    setColor(Color.WHITE)
-                    cornerRadius = 10f.dp().toFloat()
-                    setStroke(2.dp(), Color.BLACK)
+                    setColor(Color.BLACK)
+                    cornerRadius = 30f.dp().toFloat()
                 }
 
                 isAllCaps = false
                 stateListAnimator = null
 
-                // ✅ Besok akan auto-dijadwalkan di overlay terakhir, cukup tutup
                 setOnClickListener {
                     removeOverlay()
                     stopSelf()
                 }
             }
 
-            // ✅ "Later" BUTTON
+            // ✅ "nanti" BUTTON (Outlined Black)
             val laterButton = Button(ctx).apply {
-                text = "Later"
-                textSize = 14f
+                text = "nanti"
+                textSize = 15f
                 setTextColor(Color.BLACK)
-                typeface = Typeface.create(Typeface.DEFAULT, 600, false)
-                setPadding(0, 4.dp(), 0, 4.dp())
+                typeface = Typeface.DEFAULT_BOLD
+                setPadding(0, 12.dp(), 0, 12.dp())
                 layoutParams = LinearLayout.LayoutParams(
                     0,
                     LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -372,14 +365,13 @@ class PrayerOverlayService : Service() {
                 background = android.graphics.drawable.GradientDrawable().apply {
                     shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                     setColor(Color.WHITE)
-                    cornerRadius = 10f.dp().toFloat()
-                    setStroke(2.dp(), Color.BLACK)
+                    cornerRadius = 30f.dp().toFloat()
+                    setStroke(3.dp(), Color.BLACK)
                 }
 
                 isAllCaps = false
                 stateListAnimator = null
 
-                // ✅ Snooze saja tanpa schedule besok (besok akan dijadwalkan saat user klik "I've prayed")
                 setOnClickListener {
                     cancelAutoSnooze()
                     if (requestCode != -1) {
@@ -393,7 +385,6 @@ class PrayerOverlayService : Service() {
             buttonsLayout.addView(doneButton)
             buttonsLayout.addView(laterButton)
 
-            // Add to card
             card.addView(iconView)
             card.addView(titleView)
             card.addView(messageView)
@@ -644,8 +635,8 @@ class PrayerOverlayService : Service() {
     private fun showMissedNotification(prayerName: String) {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Missed Prayer")
-            .setContentText("You didn't mark $prayerName as done. Please don't forget to pray.")
+            .setContentTitle("sholat terlewat")
+            .setContentText("kamu belum nandain sholat $prayerName. jangan lupa sholat ya.")
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)

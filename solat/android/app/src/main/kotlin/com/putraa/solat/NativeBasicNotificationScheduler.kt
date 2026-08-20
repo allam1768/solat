@@ -1,4 +1,4 @@
-package com.example.solat
+package com.putraa.solat
 
 import android.app.AlarmManager
 import android.app.PendingIntent

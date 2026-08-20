@@ -48,7 +48,25 @@ flutter_launcher_icons:
 flutter:
   uses-material-design: true
 
-  # Assets (sesuaikan dengan struktur project kamu)
+  # Assets
   assets:
     - assets/
     - assets/icons/
+    - assets/images/
+    - assets/fonts/
+
+  # Fonts
+  fonts:
+    - family: Plus Jakarta Sans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+        - asset: assets/fonts/PlusJakartaSans-Italic.ttf
+          style: italic
+        - asset: assets/fonts/PlusJakartaSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/PlusJakartaSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/PlusJakartaSans-ExtraBold.ttf
+          weight: 800

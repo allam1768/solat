@@ -1,4 +1,4 @@
-package com.example.solat
+package com.putraa.solat
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -44,9 +44,9 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "PrayerAlarmReceiver"
 
-        const val ACTION_PRAYER_ALARM = "com.example.solat.ACTION_PRAYER_ALARM"
-        const val ACTION_SNOOZE = "com.example.solat.ACTION_SNOOZE"
-        const val ACTION_DONE = "com.example.solat.ACTION_DONE"
+        const val ACTION_PRAYER_ALARM = "com.putraa.solat.ACTION_PRAYER_ALARM"
+        const val ACTION_SNOOZE = "com.putraa.solat.ACTION_SNOOZE"
+        const val ACTION_DONE = "com.putraa.solat.ACTION_DONE"
 
         const val EXTRA_PRAYER_NAME = "extra_prayer_name"
         const val EXTRA_MESSAGE = "extra_message"

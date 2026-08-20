@@ -13,7 +13,7 @@ import '../../service/permission_helper.dart'; // ✅ NEW
 import '../../service/update_service.dart'; // ✅ NEW
 import 'package:solat/page/home/home_controller.dart';
 
-class SettingsController extends GetxController {
+class SettingsController extends GetxController with WidgetsBindingObserver {
   final OverlayService _overlayService = OverlayService();
   final NotificationService _notificationService = NotificationService();
   final PermissionHelper _permissionHelper = PermissionHelper(); // ✅ NEW
@@ -22,8 +22,7 @@ class SettingsController extends GetxController {
 
   var notificationEnabled = true.obs;
   var hasOverlayPermission = false.obs;
-  var hasFullScreenPermission = false.obs; // âœ… NEW
-  var hasBatteryExemption = false.obs; // âœ… NEW
+  var hasFullScreenPermission = false.obs; // ✅ NEW
   var isRequestingPermission = false.obs;
   var isDarkTheme = false.obs;
   var fridayReminderEnabled = true.obs; // NEW
@@ -32,16 +31,32 @@ class SettingsController extends GetxController {
   var testAttempt = 0.obs;
   Timer? _debounceTimer; // NEW: Debounce for anti-spam
 
-  // âœ… OEM Info
+  // ✅ OEM Info
   var deviceManufacturer = 'Unknown'.obs;
   var isProblematicDevice = false.obs;
 
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
     _loadSettings();
     _checkAllPermissions();
     _loadDeviceInfo();
+  }
+
+  @override
+  void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _debounceTimer?.cancel();
+    super.onClose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('🔄 SettingsController: App resumed, checking permissions...');
+      _checkAllPermissions();
+    }
   }
 
   Future<void> _loadSettings() async {
@@ -53,18 +68,14 @@ class SettingsController extends GetxController {
     languageCode.value = _storage.read('languageCode') ?? 'en';
   }
 
-  // âœ… Check all permissions
+  // ✅ Check all permissions
   Future<void> _checkAllPermissions() async {
     try {
-      final permission = await _overlayService.hasOverlayPermission();
-      hasOverlayPermission.value = permission;
-
-      // Check battery exemption
-      final batteryStatus = await _permissionHelper.checkAllPermissions();
-      hasBatteryExemption.value = batteryStatus == PermissionStatus.granted;
+      final status = await _permissionHelper.checkAllPermissions();
+      final isGranted = status == PermissionStatus.granted;
+      hasOverlayPermission.value = isGranted;
     } catch (e) {
       hasOverlayPermission.value = false;
-      hasBatteryExemption.value = false;
     }
   }
 
@@ -108,44 +119,27 @@ class SettingsController extends GetxController {
   Future<void> toggleNotification(bool value) async {
     notificationEnabled.value = value;
     await _notificationService.setNotificationEnabled(value);
-
     _debouncedRefresh();
-
-    showToast(value
-        ? 'Prayer notifications enabled'
-        : 'Prayer notifications disabled');
   }
 
   Future<void> toggleFridayReminder(bool value) async {
     fridayReminderEnabled.value = value;
     await _storage.write(NotificationService.fridayReminderEnabledKey, value);
-
     _debouncedRefresh();
-
-    showToast(value
-        ? 'Friday preparation reminders enabled'
-        : 'Friday preparation reminders disabled');
   }
 
   Future<void> toggleTheme(bool value) async {
     isDarkTheme.value = value;
     await _storage.write('isDarkTheme', value);
     Get.changeThemeMode(value ? ThemeMode.dark : ThemeMode.light);
-    showToast(value ? 'Dark theme enabled' : 'Light theme enabled');
   }
 
   Future<void> setReminderProfile(int index) async {
-    if (reminderProfile.value == index) return; // Ignore if same
+    if (reminderProfile.value == index) return;
 
     reminderProfile.value = index;
     await _storage.write('reminderProfile', index);
-
     _debouncedRefresh();
-
-    String profileName = 'Basic';
-    if (index == 1) profileName = 'Smart';
-
-    showToast('$profileName mode activated');
   }
 
   Future<void> changeLanguage(String langCode, String countryCode) async {
@@ -154,35 +148,35 @@ class SettingsController extends GetxController {
     await _storage.write('countryCode', countryCode);
 
     Get.updateLocale(Locale(langCode, countryCode));
-    showToast('Language updated');
   }
 
-  // âœ… Request all critical permissions
+  // ✅ Request all critical permissions
   Future<void> requestAllPermissions() async {
+    if (isRequestingPermission.value) return;
     isRequestingPermission.value = true;
 
     // Show explanation dialog
     final proceed = await _permissionHelper.showPermissionDialog(
-      title: 'Required Permissions',
+      title: 'perlu izin tambahan',
       message: '''
-This app needs the following permissions to work properly:
+Aplikasi butuh izin ini biar pengingat kamu jalan lancar:
 
-1.   Display over other apps
-   - Show prayer time overlay
+1. Lokasi
+   - Menentukan jadwal sholat yang akurat sesuai lokasi kamu
 
-2.  Notifications
-   - Alert you at prayer times
+2. Tampil di atas aplikasi lain
+   - Menampilkan pengingat sholat di layar
 
-3.   Exact alarms
-   - Trigger reminders precisely
+3. Notifikasi
+   - Mengingatkan kamu saat masuk waktu sholat
 
-4.   Battery optimization exemption
-   - Ensure reminders work even when app is closed
+4. Alarm presisi
+   - Memastikan pengingat muncul tepat waktu
 
-Tap Continue to grant these permissions.
+Tap lanjut buat ngatur izin ya.
       ''',
       oemSpecificMessage: isProblematicDevice.value
-          ? 'Additional settings may be required for your device.'
+          ? 'perangkat kamu mungkin butuh pengaturan tambahan.'
           : null,
     );
 
@@ -200,33 +194,33 @@ Tap Continue to grant these permissions.
     isRequestingPermission.value = false;
 
     if (granted) {
-      showToast('All permissions granted!');
+      showToast('semua izin berhasil diaktifkan!');
 
       // Show OEM-specific guidance if needed
       if (isProblematicDevice.value) {
         await _showOEMGuidance();
       }
     } else {
-      showToast('Some permissions missing');
+      showToast('beberapa izin belum aktif');
 
       // Show what's missing
       await Get.dialog(
         AlertDialog(
-          title: const Text('Setup Incomplete'),
+          title: const Text('izin belum lengkap'),
           content: const Text(
-              'Some permissions were not granted. The app may not work properly when closed.\n\n'
-              'You can grant them manually in Settings.'),
+              'beberapa izin belum diaktifkan. aplikasi mungkin nggak jalan lancar saat ditutup.\n\n'
+              'kamu bisa mengizinkannya secara manual di pengaturan.'),
           actions: [
             TextButton(
               onPressed: () => Get.back(),
-              child: const Text('Later'),
+              child: const Text('nanti aja'),
             ),
             ElevatedButton(
               onPressed: () {
                 Get.back();
                 _permissionHelper.openAppSettings();
               },
-              child: const Text('Open Settings'),
+              child: const Text('buka pengaturan'),
             ),
           ],
         ),
@@ -234,7 +228,7 @@ Tap Continue to grant these permissions.
     }
   }
 
-  // âœ… Request overlay permission (legacy)
+  // ✅ Request overlay permission (legacy)
   Future<void> requestOverlayPermission() async {
     isRequestingPermission.value = true;
 
@@ -244,21 +238,10 @@ Tap Continue to grant these permissions.
     isRequestingPermission.value = false;
 
     showToast(
-        granted ? 'Overlay permission granted' : 'Overlay permission denied');
+        granted ? 'izin overlay diizinkan' : 'izin overlay ditolak');
   }
 
-  // âœ… Request battery exemption
-  Future<void> requestBatteryExemption() async {
-    final granted =
-        await _permissionHelper.requestBatteryOptimizationExemption();
-    hasBatteryExemption.value = granted;
-
-    showToast(granted
-        ? 'âœ… Battery optimization disabled'
-        : 'âŒ Battery exemption denied');
-  }
-
-  // âœ… Show OEM-specific guidance
+  // ✅ Show OEM-specific guidance
   Future<void> _showOEMGuidance() async {
     final oemInfo = await _permissionHelper.getOEMInfo();
 
@@ -266,51 +249,48 @@ Tap Continue to grant these permissions.
 
     await Get.dialog(
       AlertDialog(
-        title: Text('${oemInfo.manufacturer} Setup'),
+        title: Text('Pengaturan ${oemInfo.manufacturer}'),
         content: SingleChildScrollView(
           child: Text(
-            'âš ï¸ Important: ${oemInfo.manufacturer} devices require additional settings:\n\n'
+            '⚠️ Penting: perangkat ${oemInfo.manufacturer} butuh pengaturan tambahan:\n\n'
             '${oemInfo.oemGuidance}\n\n'
-            'Without these settings, reminders may not work when the app is closed.',
+            'Tanpa pengaturan ini, pengingat mungkin nggak muncul saat aplikasi ditutup.',
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('I Understand'),
+            child: const Text('paham'),
           ),
           ElevatedButton(
             onPressed: () {
               Get.back();
               _permissionHelper.openAppSettings();
             },
-            child: const Text('Open Settings'),
+            child: const Text('buka pengaturan'),
           ),
         ],
       ),
     );
   }
 
-  // âœ… Show permission status
+  // ✅ Show permission status
   Future<void> showPermissionStatus() async {
     final status = await _permissionHelper.checkAllPermissions();
     final oemInfo = await _permissionHelper.getOEMInfo();
 
-    String statusText = 'Permission Status:\n\n';
-    statusText += 'Overlay: ${hasOverlayPermission.value ? "âœ“" : "Ã—"}\n';
-    statusText +=
-        'Notifications: ${notificationEnabled.value ? "âœ“" : "Ã—"}\n';
-    statusText +=
-        'Battery Exemption: ${hasBatteryExemption.value ? "âœ“" : "Ã—"}\n';
-    statusText += '\nDevice: ${oemInfo.deviceName}\n';
+    String statusText = 'Status Izin:\n\n';
+    statusText += 'Overlay: ${hasOverlayPermission.value ? "✓" : "×"}\n';
+    statusText += 'Notifikasi: ${notificationEnabled.value ? "✓" : "×"}\n';
+    statusText += '\nPerangkat: ${oemInfo.deviceName}\n';
 
     if (oemInfo.isProblematic) {
-      statusText += '\nâš ï¸ This device may require additional settings.';
+      statusText += '\n⚠️ Perangkat ini mungkin butuh pengaturan tambahan.';
     }
 
     Get.dialog(
       AlertDialog(
-        title: const Text('Permission Status'),
+        title: const Text('status izin'),
         content: Text(statusText),
         actions: [
           if (status != PermissionStatus.granted)
@@ -319,11 +299,11 @@ Tap Continue to grant these permissions.
                 Get.back();
                 requestAllPermissions();
               },
-              child: const Text('Fix Permissions'),
+              child: const Text('perbaiki izin'),
             ),
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Close'),
+            child: const Text('tutup'),
           ),
         ],
       ),
@@ -332,13 +312,13 @@ Tap Continue to grant these permissions.
 
   Future<void> resetPrayerAttempt(String prayerName) async {
     await _overlayService.resetAttempt(prayerName);
-    showToast('Attempts reset for $prayerName');
+    showToast('percobaan direset buat $prayerName');
   }
 
   Future<void> launchFeedback() async {
     final Uri url = Uri.parse('https://forms.gle/eSCzoRJkqQ84CVrn8');
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      showToast('Could not launch feedback form');
+      showToast('gagal membuka formulir masukan');
     }
   }
 

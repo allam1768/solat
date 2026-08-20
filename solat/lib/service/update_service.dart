@@ -61,7 +61,7 @@ class UpdateService extends GetxService {
         final String remoteVersion = data['version'] ?? '1.0.0';
         final int remoteBuild = data['build_number'] ?? 1;
         final String downloadUrl = data['download_url'] ??
-            'https://github.com/allam1768/solat/releases';
+            'https://play.google.com/store/apps/details?id=com.putraa.solat';
         final String releaseNotes = data['release_notes'] ?? '';
 
         bool hasUpdate = false;
@@ -81,18 +81,18 @@ class UpdateService extends GetxService {
           _showUpdateDialog(remoteVersion, downloadUrl, releaseNotes, isManual);
         } else {
           if (isManual) {
-            _showToast('already_latest'.tr);
+            _showToast('udah versi terbaru nih');
           }
         }
       } else {
         if (isManual) {
-          _showToast('failed_check'.tr);
+          _showToast('gagal cek update');
         }
       }
     } catch (e) {
       debugPrint('Error checking update: $e');
       if (isManual) {
-        _showToast('failed_check'.tr);
+        _showToast('gagal cek update');
       }
     } finally {
       isChecking.value = false;
@@ -141,7 +141,7 @@ class UpdateService extends GetxService {
                   SizedBox(width: 12.w),
                   Expanded(
                     child: Text(
-                      'update_available'.tr,
+                      'ada versi baru nih',
                       style: TextStyle(
                         fontSize: 20.sp,
                         fontWeight: FontWeight.w900,
@@ -154,7 +154,7 @@ class UpdateService extends GetxService {
               ),
               SizedBox(height: 16.h),
               Text(
-                '${'current_version'.tr}: $appVersion ➔ $remoteVersion',
+                'versi kamu: $appVersion ➔ $remoteVersion',
                 style: TextStyle(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.bold,
@@ -163,7 +163,7 @@ class UpdateService extends GetxService {
               ),
               SizedBox(height: 12.h),
               Text(
-                'update_prompt'.tr,
+                'update ke versi terbaru yuk biar aplikasi makin lancar dan dapat fitur baru.',
                 style: TextStyle(
                   fontSize: 14.sp,
                   height: 1.4,
@@ -184,7 +184,7 @@ class UpdateService extends GetxService {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Changelog:',
+                        'catatan rilis:',
                         style: TextStyle(
                           fontSize: 12.sp,
                           fontWeight: FontWeight.bold,
@@ -218,7 +218,7 @@ class UpdateService extends GetxService {
                       foregroundColor: fgColor.withValues(alpha: 0.6),
                     ),
                     child: Text(
-                      'later'.tr,
+                      'nanti aja',
                       style: TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 14.sp),
                     ),
@@ -244,7 +244,7 @@ class UpdateService extends GetxService {
                       elevation: 0,
                     ),
                     child: Text(
-                      'update_now'.tr,
+                      'update yuk',
                       style: TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 14.sp),
                     ),
